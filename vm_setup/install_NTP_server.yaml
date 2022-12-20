@@ -1,0 +1,21 @@
+- name: Install NTP server on controller host and configure it
+  hosts: localhost
+  become: true
+
+  tasks:
+    - name: Install ntp server
+      ansible.builtin.apt:
+        name:
+          - ntp
+        update_cache: true
+    - name: update NTP server config
+      ansible.builtin.lineinfile:
+        path: /etc/ntp.conf
+        search_string: "pool {{ item }}"
+        line: "server {{ item }}.europe.pool.ntp.org"
+      loop: "{{ range(0,4, 1) }}"
+    - name: restart the NTP server
+      ansible.builtin.service:
+        name: ntp
+        state: restarted
+        enabled: true

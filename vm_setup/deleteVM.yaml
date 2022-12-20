@@ -1,0 +1,111 @@
+- name: Delete a compute instance (VM) from openstack BW-cloud
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+  vars_prompt:
+    - name: openstack_password
+      prompt: What is your password for the openstack cloud
+    - name: name_of_vm
+      prompt: What is the prefix/name of the VM you want to delete?
+    - name: number_of_vm
+      prompt: If you want to delete all VM instances with the same prefix/name type 'all', otherwise type the 'number' of the VM
+
+  tasks:
+    - name: include clouds file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/clouds.yaml"
+
+    - name: get server info
+      openstack.cloud.server_info:
+        auth:
+          auth_url: "{{ clouds.openstack.auth.auth_url }}"
+          username: "{{ clouds.openstack.auth.username }}"
+          project_id: "{{ clouds.openstack.auth.project_id }}"
+          project_name: "{{ clouds.openstack.auth.project_name }}"
+          user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+          password: "{{ openstack_password }}"
+        region_name: "{{ clouds.openstack.region_name }}"
+        interface: "{{ clouds.openstack.interface }}"
+      register: server_result
+      no_log: true
+
+    - name: delete all VM instances with given prefix/name and delete inventory file
+      block:
+        - name: set the deployed VM instances names
+          ansible.builtin.set_fact:
+            instances: "{{ server_result.openstack_servers | json_query( instance_query ) }}"
+          vars:
+            instance_query: "[? contains (name, '{{ name_of_vm }}_')].name"
+        - name: display VM instances with given prefix/name
+          ansible.builtin.debug:
+            msg: "{{ instances }}"
+
+        - name: delete all VMs
+          openstack.cloud.server:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+            name: "{{ item }}"
+            state: absent
+          loop: "{{ instances | flatten(levels=1) }}"
+          no_log: true
+
+        - name: delete inventory file
+          ansible.builtin.file:
+            path: "{{ git_project_dir }}/inventory/{{ name_of_vm }}_inventory.yaml"
+            state: absent
+      when:
+        - (number_of_vm == 'all' )
+
+    - name: delete specific VM instance with given prefix/name and remove it from inventory file
+      block:
+        - name: delete a VM
+          openstack.cloud.server:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+            name: "{{ name_of_vm }}_{{ number_of_vm }}"
+            state: absent
+          no_log: true
+
+        - name: delete VM instance name from inventory file
+          ansible.builtin.lineinfile:
+            path: "{{ git_project_dir }}/inventory/{{ name_of_vm }}_inventory.yaml"
+            state: absent
+            regexp: '^(.*){{ name_of_vm }}_{{ number_of_vm }}'
+        - name: Set the IPv4 address of the VM instances with given prefix/name
+          ansible.builtin.set_fact:
+            ipv4_address: "{{ server_result.openstack_servers | json_query(ip_query) }}"
+          vars:
+            ip_query: "[? contains (name, '{{ name_of_vm }}_{{ number_of_vm }}')].accessIPv4"
+        - name: display IP
+          ansible.builtin.debug:
+            msg: "{{ ipv4_address[0] }}"
+          when:
+            - (ipv4_address| length != 0 )
+        - name: delete VM instance IP from inventory file
+          ansible.builtin.lineinfile:
+            path: "{{ git_project_dir }}/inventory/{{ name_of_vm }}_inventory.yaml"
+            state: absent
+            regexp: '^(.*){{ ipv4_address[0] }}'
+          when:
+            - (ipv4_address| length != 0 )
+        - name: display that the VM doesn't exist
+          ansible.builtin.debug:
+            msg: "The VM does not exist, thus can't be deleted"
+          when:
+            - (ipv4_address| length == 0 )
+      when:
+        - (number_of_vm != 'all')

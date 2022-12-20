@@ -1,0 +1,93 @@
+***************************************************************************
+** ISP: IBM Spectrum Protect / TSM: Tivoli Storage Manager
+**
+** Client Optionsdatei "dsm.opt" fuer UNIX Clients 
+** ===============================================
+**
+** Version: 06.03.2013 / Fl
+** Update :
+**
+** generated: 12.09.2022 16:26 Uhr
+***************************************************************************
+** Eine Beschreibung der aufgefuehrten Optionen erhalten Sie wie folgt:
+** Starten Sie die ISP-Befehlszeile
+** - dsmc
+**   - Hinter dem Prompt "Protect>" geben Sie dann den entsprechenden
+**     "help"-Befehl ein, zum Beispiel
+**     help nodename
+**   - Beenden der ISP-Befehlszeile durch Eingabe von "quit"
+***************************************************************************
+**
+**
+**=========================================================================
+** Bitte beachten:
+**
+** Die Option "domain" finden Sie in der Optionsdatei "dsm.sys" hinter
+** der Stanza "servername backup".
+**
+**=========================================================================
+**
+** *********************************************************************** *
+** Please contact the SCC before activating/changing one of these options. *
+** *********************************************************************** *
+**
+**=========================================================================
+** dateformat   = 4  ==>  dd.mm.yyyy
+** timeformat   = 1  ==>  hh:mm:ss
+** numberformat = 4  ==>  1 000.00
+**
+   dateformat     4
+   timeformat     1
+   numberformat   4
+**
+   compressalways   no
+**
+   quiet
+**
+*  verbose
+**=========================================================================
+**
+**=========================================================================
+** The
+** SUBDIR
+** option specifies whether you want to include subdirectories of
+** named directories for processing on the following commands:
+** archive, delete archive, delete backup, incremental, query archive, 
+** query backup, restore, restore backupset, restore group, retrieve,
+** selective
+** no : Subdirectories are not processed.
+**      This is the default.
+** yes: Subdirectories are processed. 
+**
+   subdir   yes
+**=========================================================================
+**
+**=========================================================================
+** The
+** FOLLOWSYMBOLIC
+** option specifies whether you want to restore files to symbolic
+** links or use a symbolic link as a virtual mount point.
+** no : Specifies that you do not want to restore to symbolic links,
+**      or to use symbolic links as virtual mount points.
+**      This is the default.
+** yes: Specifies that you want to restore to symbolic links, or to
+**      use a symbolic link as a virtual mount point.
+**
+   followsymbolic   yes
+**=========================================================================
+**
+**=========================================================================
+** The
+** ARCHSYMLINKASFILE
+** option specifies whether TSM follows a symbolic link and archives the
+** file or directory to which it points, or archives the symbolic link
+** only.
+** Use this option with the "archive" command.
+** yes: Specifies that TSM follows a symbolic link and archives
+**      the associated file or directory.
+**      This is the default.
+** no : Specifies that TSM archives the symbolic link and not
+**      the associated file or directory.
+**
+   archsymlinkasfile   no
+**=========================================================================

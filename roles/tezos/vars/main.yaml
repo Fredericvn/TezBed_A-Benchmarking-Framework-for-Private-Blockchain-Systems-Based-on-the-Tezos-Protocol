@@ -1,0 +1,113 @@
+---
+# The protocol hash defines the protocol version (here Hangzhou2 v011) that the network will run.
+# IMPORTANT NOTE: If the protocol version is changed, then the correct versions for the node, client, baker, endorsers,... needs to be installed.
+#                 The network parameter/config may change drastically and the parameters need to be adjusted for this benchmark.
+#                 The current implementation only supports Hangzhou2
+tezos_protocol_hash: "PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
+
+# The name/alias of the baker/validator accounts
+baker_account_name: "baker"
+
+# Set the mode for the chain's data history storage.
+# Possible values are archive, full (default), full:N, rolling, rolling:N.
+# Archive mode retains all data since the genesis block.
+# Full mode only maintains block headers and operations allowing replaying the chain since the genesis if wanted.
+# Rolling mode retains only the most recent data and deletes the rest.
+# For both Full and Rolling modes, it is possible to adjust the number of cycles to preserve by using the :N annotation.
+# The default number of preserved cycles is 5.
+history_mode: "archive"
+
+# Expected level of proof-of-work for peers identity. A higher value takes a node a lot longer to create an identity
+# Floating point number between 0 and 256 that represents the difficulty.
+# 24 signifies for example that at least 24 leading zeroes are expected in the hash.
+identity_difficulty: 1
+
+# Tezos peer to peer port
+tezos_p2p_port: 9732
+# Tezos RPC port
+tezos_rpc_port: 8732
+
+# Protocol constants for protocol Tezos Hangzou2
+# ----------------------------------------------------------------------------------------------------------------------------------
+# All constants starting in the comment with 'RD' and with value 'NULL'
+# are set automatically during benchmark execution, based directly on the random function
+# All constants starting in the comment with 'D_RD' and with value 'NULL' are dependend on the random variables!
+#
+# If a value for an 'RD' var is given instead of 'NULL', the random function is overwritten
+# If a value for an 'D_RD' var is given, the var is no longer dependend this can cause breaking the network/benchmark!
+# ----------------------------------------------------------------------------------------------------------------------------------
+# WARNING: Changing any other constants can cause breaking the network/benchmark!
+
+protocol_constants:
+  # Number of cycles for freezing security deposits and rewards. (default: int 5)
+  preserved_cycles: 1
+  # Number of blocks per consensus cycle. (default: int 8192)
+  blocks_per_cycle: 50
+  # Number of blocks between seed nonce commitments. (default: int 64)
+  blocks_per_commitment: 25
+  # Number of blocks between roll snapshots. (default: int 512)
+  blocks_per_roll_snapshot: 25
+  # Number of blocks per voting period. (default: int 40960)
+  blocks_per_voting_period: 640
+  # - D_RD - list(base delay: Minimal time between blocks priority != 0 [sec] (default: str "60"), Block delay per block priority [sec] (default: str "40"))
+  time_between_blocks:
+    - Null
+    - Null
+  # - RD - Actual expected time between blocks, time_between_blocks stays unchanged. (default: str "30") --> BlOCK CREATION INTERVALL
+  minimal_block_delay: Null
+  # - D_RD - Max number of endorsing slots (default: int 256)
+  # Set the maximum number of endorsers per block to 80% of the number of bakers
+  # If the number of endorsements (initial_endorsers) is below 3/4 * endorsers_per_block , the next block is delayed.
+  endorsers_per_block: Null
+  # Max gas limit per operation,
+  # if block gas limit is smaller than gas limit per operation it is set to the block gas limit (default: str "1040000")
+  hard_gas_limit_per_operation: "1040000"
+  # - RD - Max gas limit per block --> BLOCKSIZE (default: str "5200000")
+  hard_gas_limit_per_block: Null
+  # Threshold for message nonce complexity. aka node identity difficulty (default: str "60")
+  proof_of_work_threshold: "-1"
+  # Amount of Tezos per roll. (default: str "6000000000")
+  tokens_per_roll: "10000000000"
+  # Rewards for publishing a seed nonce. (default: str "125000")
+  seed_nonce_revelation_tip: "125000"
+  # Origination storage requirement in bytes. (default: int 257)
+  origination_size: 257
+  # Baker security deposit in tez. (default: str "640000000")
+  block_security_deposit: "10"
+  # Endorser security deposit per slot in tez. (default: str "2500000")
+  endorsement_security_deposit: "10"
+  # list(baking reward per endorsment in millitez) (default: str "78125", str "11719")
+  baking_reward_per_endorsement:
+    - "78125"
+    - "11719"
+  # Block endorsing reward per slot in millitez (default: str "78125", str "52083")
+  endorsement_reward:
+    - "78125"
+    - "52083"
+  # Max gas limit for storage spent by an operation.
+  # if block gas limit is smaller than storage limit per operation it is set to the block gas limit (default: str "60000")
+  hard_storage_limit_per_operation: "60000"
+  # Gas costs per data byte. (default: str "250")
+  cost_per_byte: "250"
+  # (Babylon, v005) Minimum threshold for voting period quorum in centile. (default: int 2000)
+  quorum_min: 2000
+  # (Babylon, v005) Maximum threshold for voting period quorum in centile. (default: int 7000)
+  quorum_max: 7000
+  # (Babylon, v005) Minimum quorum to accept proposals in centile (i.e. 5% = 500). (default: int 500)
+  min_proposal_quorum: 500
+  # - D_RD - Number of initial endorsers per block
+  # If the number of endorsersements (initial_endorsers) is below 0.75 * endorsers_per_block , the next block is delayed. (default: int 192)
+  initial_endorsers: Null
+  # - D_RD - Delay delay per (missed) endorsement in seconds (default: str "4")
+  delay_per_missing_endorsement: Null
+  # (Granada, v010) Subsidy amount. (default: str "2500000")
+  liquidity_baking_subsidy: "2500000"
+  # (Granada, v010) Block at which liquidity baking stops. (default: int 525600)
+  liquidity_baking_sunset_level: 525600
+  # (Granada, v010) Threshold to disable liquidity baking. (default: int 1000000)
+  liquidity_baking_escape_ema_threshold: 1000000
+
+# Define the parameters for the synchronisation heuristic (see: https://tezos.gitlab.io/shell/sync.html)
+# Set the multiplication factor for the chain validation latency
+latency_factor: 4
+...

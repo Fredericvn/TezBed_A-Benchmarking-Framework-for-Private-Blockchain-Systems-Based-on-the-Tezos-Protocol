@@ -1,0 +1,184 @@
+# General ports
+icmp_ip4_i:
+    protocol: icmp
+    port_range_min: -1
+    port_range_max: -1
+    ethertype: IPv4
+tcp_ip4_i:
+    protocol: tcp
+    port_range_min: -1
+    port_range_max: -1
+    ethertype: IPv4
+any_ip4_i:
+    protocol: any
+    port_range_min: -1
+    port_range_max: -1
+    ethertype: IPv4
+any_ip6_i:
+    protocol: any
+    port_range_min: -1
+    port_range_max: -1
+    ethertype: IPv6
+icmp_ip4_p_i:
+    protocol: icmp
+    port_range_min: -1
+    port_range_max: -1
+    ethertype: IPv4
+    remote_ip_prefix: 0.0.0.0/0
+icmp_ip6_p_i:
+    protocol: icmp
+    port_range_min: -1
+    port_range_max: -1
+    ethertype: IPv6
+    remote_ip_prefix: ::/0
+tcp_ip4_p_i:
+    protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    ethertype: IPv4
+    remote_ip_prefix: 0.0.0.0/0
+tcp_ip6_p_i:
+    protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    ethertype: IPv6
+    remote_ip_prefix: ::/0
+
+# Clickhouse related ports
+clickhouse_ip4_i:
+    protocol: tcp
+    port_range_min: 9440
+    port_range_max: 9440
+    ethertype: IPv4
+    direction: ingress
+clickhouse_ip4_o:
+    protocol: tcp
+    port_range_min: 9440
+    port_range_max: 9440
+    ethertype: IPv4
+    direction: egress
+
+# Network Time Protocol related ports
+ntp_ip4_i:
+    protocol: udp
+    port_range_min: 123
+    port_range_max: 123
+    ethertype: IPv4
+    direction: ingress
+ntp_ip4_o:
+    protocol: udp
+    port_range_min: 123
+    port_range_max: 123
+    ethertype: IPv4
+    direction: egress
+ntp_ip6_i:
+    protocol: udp
+    port_range_min: 123
+    port_range_max: 123
+    ethertype: IPv6
+    direction: ingress
+ntp_ip6_o:
+    protocol: udp
+    port_range_min: 123
+    port_range_max: 123
+    ethertype: IPv6
+    direction: egress
+
+# Tezos RPC and P2P ports
+tezos_rpc_ip4_udp_i:
+    protocol: udp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv4
+    direction: ingress
+tezos_rpc_ip4_udp_o:
+    protocol: udp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv4
+    direction: egress
+tezos_rpc_ip6_udp_i:
+    protocol: udp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv6
+    direction: ingress
+tezos_rpc_ip6_udp_o:
+    protocol: udp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv6
+    direction: egress
+tezos_rpc_ip4_tcp_i:
+    protocol: tcp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv4
+    direction: ingress
+tezos_rpc_ip4_tcp_o:
+    protocol: tcp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv4
+    direction: egress
+tezos_rpc_ip6_tcp_i:
+    protocol: tcp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv6
+    direction: ingress
+tezos_rpc_ip6_tcp_o:
+    protocol: tcp
+    port_range_min: 8732
+    port_range_max: 8732
+    ethertype: IPv6
+    direction: egress
+
+tezos_peer_ip4_udp_i:
+    protocol: udp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv4
+    direction: ingress
+tezos_peer_ip4_udp_o:
+    protocol: udp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv4
+    direction: egress
+tezos_peer_ip6_udp_i:
+    protocol: udp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv6
+    direction: ingress
+tezos_peer_ip6_udp_o:
+    protocol: udp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv6
+    direction: egress
+tezos_peer_ip4_tcp_i:
+    protocol: tcp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv4
+    direction: ingress
+tezos_peer_ip4_tcp_o:
+    protocol: tcp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv4
+    direction: egress
+tezos_peer_ip6_tcp_i:
+    protocol: tcp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv6
+    direction: ingress
+tezos_peer_ip6_tcp_o:
+    protocol: tcp
+    port_range_min: 9732
+    port_range_max: 9732
+    ethertype: IPv6
+    direction: egress

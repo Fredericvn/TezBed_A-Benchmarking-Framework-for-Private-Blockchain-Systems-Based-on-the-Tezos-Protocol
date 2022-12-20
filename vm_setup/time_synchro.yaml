@@ -1,0 +1,2 @@
+- import_playbook: install_NTP_server.yaml
+- import_playbook: install_NTP_client.yaml

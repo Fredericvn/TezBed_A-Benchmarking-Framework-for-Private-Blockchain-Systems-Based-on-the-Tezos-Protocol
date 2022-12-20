@@ -1,0 +1,271 @@
+- name: Launch multiple compute instances
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+  vars_prompt:
+    - name: openstack_password
+      prompt: What is your password for the openstack cloud
+    - name: name_of_dl
+      prompt: What is the name of the distributed ledger/blockchain design you want to deploy -> Prefix/Name for VM?
+    - name: host_flavor
+      prompt: "What hardware flavor do you want to use for all target hosts - Type name only! [name(RAM,VCPU)]:
+       nano(512MB,1); tiny(1GB,1); small(2GB,1); medium(4GB,2); large(8GB,4); xlarge(16GB,8); xxlarge(32GB,16)?"
+    - name: number_of_hosts
+      prompt: How many target hosts instances do you want to deploy?
+    - name: name_ssh_key
+      prompt: "Whats the name of the SSH key you want to use ? (requirement: public key has already been added to the bw cloud portal)"
+    - name: name_security_gr
+      prompt: Name of the security group, the vms should get assigend to
+
+  tasks:
+    - name: Check that the host_flavor input is valid
+      ansible.builtin.fail:
+        msg: "The desired host flavor: '{{ host_flavor }}' does not exist"
+      when:
+        - (host_flavor != "nano")
+        - (host_flavor != "tiny")
+        - (host_flavor != "small")
+        - (host_flavor != "medium")
+        - (host_flavor != "large")
+        - (host_flavor != "xlarge")
+        - (host_flavor != "xxlarge")
+
+    - name: Check that the number_of_host input is valid
+      ansible.builtin.fail:
+        msg: "The number of desired hosts({{ number_of_hosts }}) must be a positive integer"
+      when: (number_of_hosts|int < 1 or "," in number_of_hosts or "." in number_of_hosts)
+
+    - name: include clouds file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/clouds.yaml"
+    - name: include cloud quota file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/cloud_quota.yaml"
+
+    - name: Display the entered VM properties
+      ansible.builtin.debug:
+        msg: "You entered - name: {{ name_of_dl }}, flavor: {{ host_flavor }}, number of hosts: {{ number_of_hosts }}, \
+        name of SSH key: {{ name_ssh_key }}, security group: {{ name_security_gr }} - \
+        If this is not correct, press ctrl / control + C to stop the process"
+
+    - name: Check validity of input, then launch desired compute instances
+      block:
+        - name: get flavor
+          openstack.cloud.compute_flavor_info:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+          register: flavor_result_all
+          no_log: true
+
+        - name: Filter flavor_result_all for entered flavor and set var
+          ansible.builtin.set_fact:
+            flavor_result: "{{ flavor_result_all.openstack_flavors | json_query(flavor_query) }}"
+          vars:
+            flavor_query: "[? name==`m1.{{ host_flavor }}`]"
+
+        - name: display ram and cpu
+          ansible.builtin.debug:
+            msg: "_ram_: {{ flavor_result.0.ram }}, \
+            _cpu_: {{ flavor_result.0.vcpus }}"
+            verbosity: 1
+
+        - name: get server info, sum up the number of deployed instances and their ram and vCPUs usage
+          block:
+            - name: get server info
+              openstack.cloud.server_info:
+                auth:
+                  auth_url: "{{ clouds.openstack.auth.auth_url }}"
+                  username: "{{ clouds.openstack.auth.username }}"
+                  project_id: "{{ clouds.openstack.auth.project_id }}"
+                  project_name: "{{ clouds.openstack.auth.project_name }}"
+                  user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+                  password: "{{ openstack_password }}"
+                region_name: "{{ clouds.openstack.region_name }}"
+                interface: "{{ clouds.openstack.interface }}"
+              register: server_result
+              no_log: true
+            - name: display all instances
+              ansible.builtin.debug:
+                msg: "{{ server_result.openstack_servers | json_query(instance_query) }}"
+              vars:
+                instance_query: "[*].{name_instance: name, name_of_flavor: flavor.original_name, ram: flavor.ram, vCPUs: flavor.vcpus, IP_address: accessIPv4}"
+            - name: calculate the sum of all instances
+              ansible.builtin.set_fact:
+                sum_instances: "{{ server_result.openstack_servers | flatten(levels=1) | length }}"
+            - name: display number of instances
+              ansible.builtin.debug:
+                msg: "{{ sum_instances }} instances are deployed"
+            - name: calculate the sum of ram
+              ansible.builtin.set_fact:
+                sum_ram: "{{ server_result.openstack_servers | json_query('sum([*].flavor.ram)') }}"
+            - name: display sum of ram
+              ansible.builtin.debug:
+                msg: "{{ sum_ram }} MB are used by all instances"
+            - name: calculate the sum of vCPUs
+              ansible.builtin.set_fact:
+                sum_vcpu: "{{ server_result.openstack_servers | json_query('sum([*].flavor.vcpus)') }}"
+            - name: display sum of vCPUs
+              ansible.builtin.debug:
+                msg: "{{ sum_vcpu }} vCPUs are used by all instances"
+
+
+        - name: Check if new distributed ledger/prefix/name or if existent one in cloud and inventory
+          block:
+            - name: Count the number of hosts already deployed with the same prefix based on the cloud data
+              ansible.builtin.set_fact:
+                numb_exist_hosts_cloud: "{{ server_result.openstack_servers | json_query(instance_query) | flatten(levels=1) | length }}"
+              vars:
+                instance_query: "[?starts_with(name, '{{ name_of_dl }}_')]"
+            - name: "Display number of hosts with prefix '{{ name_of_dl }}' in cloud data"
+              ansible.builtin.debug:
+                msg: "{{ numb_exist_hosts_cloud }}"
+            - name: Store the hostnames and ipv4 addresses of the existent ones in existing_target_hosts
+              ansible.builtin.set_fact:
+                existing_target_hosts: "{{ server_result.openstack_servers | json_query(instance_query) | sort(attribute='name') }}"
+              vars:
+                instance_query: "[?starts_with(name, '{{ name_of_dl }}_')]"
+            - name: Set new start value for host id = numb_exist_hosts_cloud + 1
+              ansible.builtin.set_fact:
+                start_value_host_id: "{{ numb_exist_hosts_cloud | int + 1 }}"
+              when: (numb_exist_hosts_cloud | int != 0)
+            - name: Set new end value for host id = number_of_hosts + numb_exist_hosts_cloud
+              ansible.builtin.set_fact:
+                end_value_host_id: "{{ numb_exist_hosts_cloud | int + number_of_hosts | int }}"
+              when: (numb_exist_hosts_cloud | int != 0)
+
+            - name: Create inventory directory, if non existant
+              ansible.builtin.file:
+                path: "{{ git_project_dir }}/inventory"
+                state: directory
+                mode: '0777'
+
+            - name: Check existance of inventory file
+              ansible.builtin.stat:
+                path: "{{ git_project_dir }}/inventory/{{ name_of_dl }}_inventory.yaml"
+              register: status_inventory
+            - name: Count the number of hosts already deployed with the same prefix based on the inventory file
+              block:
+                - name: Print status_inventory
+                  ansible.builtin.debug:
+                    msg: "Inventory exists"
+                - name: Load inventory file
+                  ansible.builtin.include_vars:
+                    file: "{{ git_project_dir }}/inventory/{{ name_of_dl }}_inventory.yaml"
+                    name: inventory
+                - name: Count number of hosts in inventory file
+                  ansible.builtin.set_fact:
+                    numb_exist_hosts_inv: "{{ inventory['all']['hosts'] | length }}"
+                - name: Display number of hosts in inventory file
+                  ansible.builtin.debug:
+                    msg: "{{ numb_exist_hosts_inv }} hosts are in the {{ name_of_dl }}_inventory"
+              when: status_inventory.stat.isreg is defined and status_inventory.stat.isreg
+
+        - name: If new Prefix, launch multiple VMs and log them to new inventory file
+          block:
+            - name: Launch a VM
+              openstack.cloud.server:
+                auth:
+                  auth_url: "{{ clouds.openstack.auth.auth_url }}"
+                  username: "{{ clouds.openstack.auth.username }}"
+                  project_id: "{{ clouds.openstack.auth.project_id }}"
+                  project_name: "{{ clouds.openstack.auth.project_name }}"
+                  user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+                  password: "{{ openstack_password }}"
+                region_name: "{{ clouds.openstack.region_name }}"
+                interface: "{{ clouds.openstack.interface }}"
+                state: present
+                image: Ubuntu 20.04
+                name: "{{ name_of_dl }}_{{ item }}"
+                key_name: "{{ name_ssh_key }}"
+                availability_zone: nova
+                flavor: "m1.{{ host_flavor }}"
+                network: public-belwue
+                security_groups:
+                  - "{{ name_security_gr }}"
+                  - default
+              register: target_hosts
+              ignore_errors: true
+              loop: "{{ range(1, number_of_hosts | int + 1, 1) | flatten(levels=1) }}"
+              no_log: true
+            - name: display deployed VMs
+              ansible.builtin.debug:
+                msg: "{{ target_hosts.results | json_query(deployed_query) }}"
+              vars:
+                deployed_query: "[*].{vmName: server.name, ram: server.flavor.ram, vCPU: server.flavor.vcpus, IPv4: server.accessIPv4}"
+
+            - name: create inventory file
+              ansible.builtin.template:
+                src: "{{ git_project_dir }}/vm_setup/inventory_template.j2"
+                dest: "{{ git_project_dir }}/inventory/{{ name_of_dl }}_inventory.yaml"
+                mode: 0666
+          when:
+            - (sum_instances|int + number_of_hosts|int <= cloud_quota.max_instances|int )
+            - (sum_ram|int + (flavor_result.0.ram|int * number_of_hosts|int) <= cloud_quota.max_ram_MB|int)
+            - (sum_vcpu|int + (flavor_result.0.vcpus|int * number_of_hosts|int) <= cloud_quota.max_vCPUs|int)
+            - (numb_exist_hosts_cloud|int == 0)
+
+        - name: If used Prefix, launch multiple VMs and add them to existing inventory file
+          block:
+            - name: Launch a VM
+              openstack.cloud.server:
+                auth:
+                  auth_url: "{{ clouds.openstack.auth.auth_url }}"
+                  username: "{{ clouds.openstack.auth.username }}"
+                  project_id: "{{ clouds.openstack.auth.project_id }}"
+                  project_name: "{{ clouds.openstack.auth.project_name }}"
+                  user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+                  password: "{{ openstack_password }}"
+                region_name: "{{ clouds.openstack.region_name }}"
+                interface: "{{ clouds.openstack.interface }}"
+                state: present
+                image: Ubuntu 20.04
+                name: "{{ name_of_dl }}_{{ item }}"
+                key_name: "{{ name_ssh_key }}"
+                availability_zone: nova
+                flavor: "m1.{{ host_flavor }}"
+                network: public-belwue
+                security_groups:
+                  - "{{ name_security_gr }}"
+                  - default
+              register: target_hosts
+              loop: "{{ range(start_value_host_id | int, end_value_host_id | int + 1, 1) | flatten(levels=1) }}"
+              ignore_errors: true
+              no_log: true
+            - name: display deployed VMs
+              ansible.builtin.debug:
+                msg: "{{ target_hosts.results | json_query(deployed_query) }}"
+              vars:
+                deployed_query: "[*].{vmName: server.name, ram: server.flavor.ram, vCPU: server.flavor.vcpus, IPv4: server.accessIPv4}"
+            - name: add to inventory file (create new with old inventory file inserted)
+              ansible.builtin.template:
+                src: "{{ git_project_dir }}/vm_setup/inventory_template_add.j2"
+                dest: "{{ git_project_dir }}/inventory/{{ name_of_dl }}_inventory.yaml"
+                mode: 0666
+              ignore_errors: true
+          when:
+            - (sum_instances | int + number_of_hosts | int <= cloud_quota.max_instances | int )
+            - (sum_ram | int + (flavor_result.0.ram | int * number_of_hosts | int) <= cloud_quota.max_ram_MB | int)
+            - (sum_vcpu | int + (flavor_result.0.vcpus | int * number_of_hosts | int) <= cloud_quota.max_vCPUs | int)
+            - (numb_exist_hosts_cloud | int != 0)
+
+        - name: Number of Instances cause aborting controller
+          ansible.builtin.debug:
+            msg: "The desired number of instances exceeds your quota"
+          when: (sum_instances|int + number_of_hosts|int > cloud_quota.max_instances|int )
+
+        - name: Sum of Ram cause aborting controller
+          ansible.builtin.debug:
+            msg: "The desired amount of ram exceeds your quota"
+          when: (sum_ram|int + (flavor_result.0.ram|int * number_of_hosts|int) > cloud_quota.max_ram_MB|int)
+
+        - name: Sum of vCPUs cause aborting controller
+          ansible.builtin.debug:
+            msg: "The desired number of vCPUs exceeds your quota"
+          when: (sum_vcpu|int + (flavor_result.0.vcpus|int * number_of_hosts|int) > cloud_quota.max_vCPUs|int)

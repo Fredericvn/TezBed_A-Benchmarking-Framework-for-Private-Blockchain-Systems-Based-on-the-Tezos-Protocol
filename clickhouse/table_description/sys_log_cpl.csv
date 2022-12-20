@@ -1,0 +1,11 @@
+name_of_chain;String
+host;String
+label;String
+datetime_u;DateTime
+interval;UInt64
+n_processors;UInt8
+load_avg_last_min;Decimal32(2)
+load_avg_last_5_min;Decimal32(2)
+load_avg_last_15_min;Decimal32(2)
+n_cxt_switches;UInt64
+n_devc_interrupts;UInt64

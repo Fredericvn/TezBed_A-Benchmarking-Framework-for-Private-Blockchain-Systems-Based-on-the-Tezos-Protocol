@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!--
+  NOTE: User and query level settings are set up in "users.xml" file.
+  If you have accidentally specified user-level settings here, server won't start.
+  You can either move the settings to the right place inside "users.xml" file
+   or add <skip_check_for_incorrect_settings>1</skip_check_for_incorrect_settings> here.
+-->
+
+<clickhouse>
+
+    <!-- Maximum number of concurrent queries. -->
+    <max_concurrent_queries>126</max_concurrent_queries>
+
+    <!-- <http_port>8123</http_port> -->
+    <!-- <tcp_port>9000</tcp_port> -->
+    <!-- <interserver_https_port>9009</interserver_https_port> -->
+    <!-- <https_port>8443</https_port> -->
+    <tcp_port_secure>9440</tcp_port_secure>
+    <!-- <interserver_https_port>9010</interserver_https_port> -->
+    
+    <openSSL>
+        <server>
+            <!-- Used for https server AND secure tcp port -->
+            <caConfig>{{ sv_cert_dir }}/ca.pem</caConfig>
+            <certificateFile>{{ sv_cert_dir }}/server.pem</certificateFile>
+            <privateKeyFile>{{ sv_cert_dir }}/server.key</privateKeyFile>
+            <dhParamsFile>{{ sv_cert_dir }}/dhparam.pem</dhParamsFile>
+        </server>
+    </openSSL>
+
+    <!-- Path to data directory, with trailing slash. -->
+    <path>{{ database_dir }}</path>
+    <listen_host>0.0.0.0</listen_host>
+  {# {% for item in groups['all'] %}
+  <listen_host>{{ hostvars[item].ansible_host }}</listen_host>
+  {% endfor -%} #}
+    <user_files_path>{{ cl_user_files_path }}/</user_files_path>
+
+</clickhouse>

@@ -1,0 +1,14 @@
+name_of_chain;String
+hostname;String
+label;String
+datetime_u;DateTime
+interval;UInt64
+layer_stack;String
+n_pkts_recv_TCP;UInt32
+n_pkts_transm_TCP;UInt32
+n_pkts_recv_UDP;UInt32
+n_pkts_transm_UDP;UInt32
+n_pkts_recv_IP;UInt32
+n_pkts_transm_IP;UInt32
+n_pkts_delv_higher_lay_IP;UInt32
+n_pkts_forwd_IP;UInt32

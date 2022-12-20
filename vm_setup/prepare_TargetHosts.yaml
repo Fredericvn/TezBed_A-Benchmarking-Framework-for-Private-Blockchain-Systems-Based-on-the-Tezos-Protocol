@@ -1,0 +1,11 @@
+---
+- import_playbook: updateVM.yaml
+- import_playbook: time_synchro.yaml
+- import_playbook: install_tezos_12-3.yaml
+- import_playbook: install_py_lib.yaml
+- import_playbook: install_clickhouse_TH.yaml
+- import_playbook: get_hardware_info.yaml
+- import_playbook: install_atop.yaml
+# - import_playbook: install_docker.yaml
+- import_playbook: clean_apt_chache.yaml
+...

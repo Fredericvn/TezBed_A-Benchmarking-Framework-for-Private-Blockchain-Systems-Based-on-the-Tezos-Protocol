@@ -1,0 +1,13 @@
+- name: Update and upgrade VM (Ubuntu etc.)
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update package source lists (apt update)
+      ansible.builtin.apt:
+        update_cache: true
+    - name: Upgrade the system packages and kernel (apt-get dist-upgrade)
+      ansible.builtin.apt:
+        upgrade: dist
+    - name: reboot the host
+      ansible.builtin.reboot:

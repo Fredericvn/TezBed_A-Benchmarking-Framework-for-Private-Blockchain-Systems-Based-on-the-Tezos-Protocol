@@ -1,0 +1,24 @@
+---
+- name: "Insert Data from CSV file with column names into Clickhouse Table: {{ table_name }} by TH"
+  ansible.builtin.shell:
+    cmd: "clickhouse-client --password {{ passw_clickhouse_user }} --query='\
+    INSERT INTO {{ database_name }}.{{ table_name }} \
+    FORMAT CSVWithNames' \
+    < {{ csv_path }}"
+  register: insert_rm_result
+  changed_when: insert_rm_result != ""
+  when: not by_localhost
+  no_log: true
+
+- name: "Insert Data from CSV file with column names into Clickhouse Table: {{ table_name }} by CH"
+  ansible.builtin.shell:
+    cmd: "clickhouse-client --password {{ passw_clickhouse_user }} --query='\
+    INSERT INTO {{ database_name }}.{{ table_name }} \
+    FORMAT CSVWithNames' \
+    < {{ csv_path }}"
+  when: by_localhost
+  register: insert_lh_result
+  changed_when: insert_lh_result != ""
+  delegate_to: localhost
+  run_once: true
+  no_log: true

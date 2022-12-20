@@ -1,0 +1,8 @@
+name_of_chain;String
+block_level;UInt32
+block_hash;String
+endorser_pkh;String
+endorser_hostname;String
+endorsment_for_level;UInt32
+endorser_slot;UInt16
+endorser_slots;Array(UInt16)

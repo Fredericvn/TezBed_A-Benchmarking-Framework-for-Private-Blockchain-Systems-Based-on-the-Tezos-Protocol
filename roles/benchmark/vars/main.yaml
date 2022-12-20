@@ -1,0 +1,102 @@
+---
+# The name/prefix of all experiments (no special cases allowed incl. underscores), the experiments get an incremental suffix counter
+# experiment_name: "test"
+experiment_name: "tezosExp"
+
+# The number of experiment batches to run, one batch includes one or multiple experiments with its own network.
+number_batches_to_run: 50 # int
+
+# The minimum number of nodes in the network in an experiment (integer or 'all').
+# Due to protocol related benchmark requirements a value below 4, is set automatically to 4.
+# If the value is above the total number of hosts in the inventory or if 'all' is given
+# it is automatically set to the total number of hosts in the inventory
+minimum_nodes_exp: 6
+
+# Range for random minimial block delay in seconds
+min_rd_min_block_delay: 7  # int
+max_rd_min_block_delay: 120  # int 23
+
+# Range for random gas limit per block / blocksize
+min_rd_gas_limit: 28400  # Min 28400 == 20 simple transactions per block (default 5200000) => 5% of 20 trx = 1 trx
+max_rd_gas_limit: 7500000  # Max 7500000
+
+# Defines the fraction of all nodes in the network that are bakers/validators, currently only 100% is supported for the workload.
+# The network itself without automated distribution and workload can be tested with smaller fractions.
+fraction_of_bakers: 1 # provide a float (0, 1] as fraction of bakers of all nodes
+
+# Set the workload level to start the workload with (see list below, 0-indexed)
+first_workload_lvl: 0
+# Set the last workload level to finish the workload with (see list below, 0-indexed)
+last_workload_lvl: 9
+# Workload levels/ Send rate levels in % of the theoretical possible transcation throughput
+workload_levels:
+  - 10
+  - 25
+  - 40
+  - 55
+  - 70
+  - 85
+  - 90
+  - 95
+  - 100
+  - 105
+
+# The number of blocks/cycles to send a workload with the same workload level
+blocks_to_run: 2  # int (minimum 2 to calculate the throughput)
+
+# The number of retries = total time in seconds an async operation is allowed to run
+max_retries: 1800 # = 0.5 hours
+
+# Set the flag to create new BAKER accounts
+# It is automatically activated by NOT skipping the Ansible TAG 'new_baker_accounts'
+new_b_accounts: false  # false | true
+# Set the flag to create new WORKER accounts
+# It is also automatically activated by NOT skipping the Ansible TAG 'new_baker_accounts'
+new_w_accounts: false  # false | true
+
+# The amount of TEZ each BAKER account gets allocated (feasibility is automatically checked in the background and the value is adapted accordingly)
+amount_of_tez_b: 100000  # int
+# The amount of TEZ each WORKER account gets allocated (feasibility is automatically checked in the background and the value is adapted accordingly)
+amount_of_tez_w: 200  # int
+
+# The amount of TEZ one worker account sends in one transaction
+# The amount can have an impact on the maximum possible workload capacity, since a higher number uses more bits
+trx_amount: 1  # int
+
+# If prepare_ops is true, then the operations are created and signed before the actual workload time and only injected during the execution of the workload
+# This increases the amount of operations per second the client can inject in the node
+# If prepare_ops is false, then the operations has to be created, signed and inject during the workloadtime
+prepare_ops: true  # false | true
+
+# Send operations/transactions in a bulk (bulk_size >= 2), that means grouped in one operation,
+# or as single operations (bulk_size = 1)
+# In a bulk operation one account can send multiple transactions in one block,
+# whereas with single operations an account can only send one transaction per block, due to its account counter.
+# Currently the workload does not support bulk operations, whereas the funds distribution is done in bulks independent of this value.
+trx_bulk_size: 1  # int
+
+# The log level defines the amount of detail that is getting logged by the node, if the level is changed, the logging parser needs to be adjusted too
+log_level: notice  # 'debug', 'info', 'notice', 'warning', 'error', or 'fatal'
+# For debug purpose the logs can be prettyprinted for a better readability, don't use it in benchmark mode
+log_prettyprinted: false  # false | true
+
+# For debugging purposes the logging to the file of all steps of the distribution of funds
+# and revealing of public keys in the preparation period can be activated
+dist_funds_log: false  # false | true
+reveal_log: false  # false | true
+
+# Defines the max latency in seconds between the CH initiates a task and reaches the last target host in the inventory list
+# plus the time it takes to get the block timestamp of one node (ca. 1 second)
+buffer_time: 10
+
+...
+# --limit "tezos_1, tezos_2, tezos_3, tezos_4, tezos_5, tezos_6, tezos_7, tezos_8, tezos_9, tezos_10, tezos_11, tezos_12, tezos_13,
+# tezos_14, tezos_15, tezos_16, tezos_17, tezos_18, tezos_19, tezos_20, tezos_21, tezos_22, tezos_23, tezos_24, tezos_25, tezos_26,
+# tezos_27, tezos_28, tezos_29, tezos_30, tezos_31, tezos_32, tezos_33, tezos_34, tezos_35, tezos_36, tezos_37, tezos_38, tezos_39,
+# tezos_40, tezos_41, tezos_42, tezos_43, tezos_44, tezos_45, tezos_46, tezos_47, tezos_48, tezos_49, tezos_50, tezos_51, tezos_52,
+# tezos_53, tezos_54, tezos_55"
+# --limit "tezos_61, tezos_62, tezos_63, tezos_64, tezos_65, tezos_66, tezos_67, tezos_68, tezos_69, tezos_60, tezos_70, tezos_71, tezos_72, tezos_73,
+# tezos_74, tezos_75, tezos_76, tezos_77, tezos_78, tezos_79, tezos_81, tezos_82, tezos_83, tezos_84, tezos_85, tezos_86,
+# tezos_87, tezos_88, tezos_89, tezos_80, tezos_91, tezos_92, tezos_93, tezos_94, tezos_95, tezos_96, tezos_97, tezos_98, tezos_99,
+# tezos_90, tezos_101, tezos_102, tezos_103, tezos_104, tezos_105, tezos_106, tezos_107, tezos_108, tezos_109, tezos_100, tezos_111, tezos_112,
+# tezos_113, tezos_114, tezos_115"

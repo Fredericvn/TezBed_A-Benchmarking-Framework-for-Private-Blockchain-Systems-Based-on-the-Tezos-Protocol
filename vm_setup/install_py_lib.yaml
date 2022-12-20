@@ -1,0 +1,34 @@
+- name: Install required Python libaries
+  hosts:
+    - localhost
+    - all
+
+  tasks:
+    - name: Install cryptographic libraries and other prerequisites
+      ansible.builtin.apt:
+        name:
+          - python3-pip=20.0.2-5ubuntu1.6
+          - libsodium-dev=1.0.18-1
+          - libsecp256k1-dev=0.1~20170810-2
+          - libgmp-dev=2:6.2.0+dfsg-4
+          - python3-pysodium=0.7.0-2
+          - pkg-config=0.29.1-0ubuntu4
+        update_cache: true
+      become: true
+
+    - name: Install pytezos
+      ansible.builtin.pip:
+        name:
+          - git+https://github.com/Fredericvn/pytezos-low_maxTTL  # my forked version of pytezos with a very low maxTTL (6)
+          # - pytezos
+        state: forcereinstall
+    - name: Install further python libraries
+      ansible.builtin.pip:
+        name:
+          - secp256k1==0.14.0
+          - fastecdsa==2.2.3
+          - Jinja2==3.1.1
+          - MarkupSafe==2.1.1
+          - python-dateutil==2.8.2
+          - jmespath==1.0.0
+          - pandas==1.4.3

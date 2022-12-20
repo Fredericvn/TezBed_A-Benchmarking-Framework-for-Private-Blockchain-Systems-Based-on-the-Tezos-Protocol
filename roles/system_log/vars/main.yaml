@@ -1,0 +1,165 @@
+# Label the system_log attributes based on "https://manpages.ubuntu.com/manpages/focal/man1/atop.1.html#parseable%20output"
+system_log_attr:
+  CPU:
+    labels:
+      - tot_n_ct_sec
+      - n_processors
+      - cons_CPUs_sys_mode_ct
+      - cons_CPUs_user_mode_ct
+      - cons_CPUs_user_mode_ct_niced_procs
+      - cons_CPUs_idle_mode_ct
+      - cons_CPUs_wait_mode_ct
+      - cons_CPUs_irq_mode_ct
+      - cons_CPUs_softirq_mode_ct
+      - cons_CPUs_steal_mode_ct
+      - cons_CPUs_guest_mode_ct
+      - frequency_CPUs
+      - frequency_pct_CPUs
+      - instr_exec_CPUs
+      - instr_exec_cycles
+    log: []
+  CPL:
+    labels:
+      - n_processors
+      - load_avg_last_min
+      - load_avg_last_5_min
+      - load_avg_last_15_min
+      - n_cxt_switches
+      - n_devc_interrupts
+    log: []
+  MEM:
+    labels:
+      - page_sz_b
+      - phys_mem_sz_p
+      - free_mem_p
+      - page_cache_sz_p
+      - buf_cache_p
+      - slab_sz_p
+      - dirt_pages_cache_p
+      - recl_prt_slab_p
+      - tot_vmware_sz_bal_pages_p
+      - tot_shrd_mem_sz_p
+      - res_shrd_mem_sz_p
+      - swap_shrd_mem_sz_p
+      - huge_page_sz_b
+      - tot_huge_pages_sz_hp
+      - free_huge_pages_hp
+    log: []
+  PSI:
+    labels:
+      - PSI_stat_pres
+      - CPU_avg10
+      - CPU_avg60
+      - CPU_avg300
+      - CPU_accum_micsec_intval
+      - mem_avg10
+      - mem_avg60
+      - mem_avg300
+      - mem_accum_micsec_intval
+      - mem_full_avg10
+      - mem_full_avg60
+      - mem_full_avg300
+      - mem_full_accum_micsec_intval
+      - IO_avg10
+      - IO_avg60
+      - IO_avg300
+      - IO_accum_micsec_intval
+      - IO_full_avg10
+      - IO_full_avg60
+      - IO_full_avg300
+      - IO_full_accum_micsec_intval
+    log: []
+  DSK:
+    labels:
+      - name
+      - n_milsec_spent_IO
+      - n_reads_issued
+      - n_sect_transf_reads
+      - n_writes_issued
+      - n_sect_transf_write
+    log: []
+  NET:
+    labels:
+      - name_intf
+      - n_pkts_recv_intf
+      - n_bytes_recv_intf
+      - n_pkts_transm_intf
+      - n_bytes_transm_intf
+      - intf_speed
+      - duplex_mode
+    log: []
+  NET_upper:
+    labels:
+      - layer_stack
+      - n_pkts_recv_TCP
+      - n_pkts_transm_TCP
+      - n_pkts_recv_UDP
+      - n_pkts_transm_UDP
+      - n_pkts_recv_IP
+      - n_pkts_transm_IP
+      - n_pkts_delv_higher_lay_IP
+      - n_pkts_forwd_IP
+    log: []
+  PRC:
+    labels:
+      - PID
+      - name
+      - state
+      - tot_n_ct_sec
+      - cons_CPUs_user_mode_ct
+      - cons_CPUs_sys_mode_ct
+      - nice_value
+      - prio
+      - rltime_prio
+      - sched_pol
+      - curr_CPU
+      - sleep_avg
+      - TGID
+      - is_process
+    log: []
+  PRM:
+    labels:
+      - PID
+      - name
+      - state
+      - page_sz_b
+      - virt_mem_sz_kb
+      - res_mem_sz_kb
+      - shrd_txt_mem_sz_kb
+      - virt_mem_growth_kb
+      - res_mem_growth_kb
+      - n_minor_page_faults
+      - n_major_page_faults
+      - virt_lib_exec_sz_kb
+      - virt_data_sz_kb
+      - virt_stack_sz_kb
+      - swap_space_used_kb
+      - TGID
+      - is_process
+      - prop_set_sz
+    log: []
+  PRD:
+    labels:
+      - PID
+      - name
+      - state
+      - obsol_kern_patch_inst
+      - std_io_stats_used
+      - n_reads_disk
+      - cum_n_sect_read
+      - n_writes_disk
+      - cum_n_sect_writt
+      - canc_n_writt_sect
+      - TGID
+      - is_process
+      - disk_IO_count_not_rel
+    log: []
+
+# Main labels, each system_log attribute inherits
+main_labels:
+  - label
+  - host
+  - datetime_u
+  - date
+  - time
+  - interval

@@ -1,0 +1,13 @@
+name_of_chain;String
+block_level;UInt32
+block_hash;String
+block_timestamp;Datetime
+block_chain_id;String
+baker_pkh;String
+baker_hostname;String
+baker_priority;UInt16
+baker_consumed_milligas;UInt64
+number_endorsements;UInt16
+trx_number_confirmed;UInt32
+trx_sum_consumed_milligas;UInt64
+trx_number_failed;UInt32

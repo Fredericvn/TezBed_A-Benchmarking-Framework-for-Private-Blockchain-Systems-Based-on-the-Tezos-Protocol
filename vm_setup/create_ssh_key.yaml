@@ -1,0 +1,42 @@
+- name: Create and manage SSH key for openstack BW cloud
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+  vars_prompt:
+    - name: openstack_password
+      prompt: What is your password for the openstack cloud
+    - name: name_ssh_key
+      prompt: "Whats the name of the SSH key you want to create?"
+
+  tasks:
+
+    - name: include clouds file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/clouds.yaml"
+
+    - name: Display the entered VM properties
+      ansible.builtin.debug:
+        msg: "You entered - Name of SSH key: {{ name_ssh_key }} \
+        If this is not correct, press ctrl / control + C to stop the process"
+
+    - name: Create a new SSH key with (optional) passphrase
+      ansible.builtin.command:
+        cmd: "ssh-keygen -t rsa -f /home/ubuntu/.ssh/{{ name_ssh_key }}"
+      register: keygen_result
+      changed_when: keygen_result != ""
+
+    - name: Add the public key to the BW cloud
+      openstack.cloud.keypair:
+        auth:
+          auth_url: "{{ clouds.openstack.auth.auth_url }}"
+          username: "{{ clouds.openstack.auth.username }}"
+          project_id: "{{ clouds.openstack.auth.project_id }}"
+          project_name: "{{ clouds.openstack.auth.project_name }}"
+          user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+          password: "{{ openstack_password }}"
+        region_name: "{{ clouds.openstack.region_name }}"
+        interface: "{{ clouds.openstack.interface }}"
+        state: present
+        name: "{{ name_ssh_key }}"
+        public_key_file: "/home/ubuntu/.ssh/{{ name_ssh_key }}.pub"
+        no_log: true

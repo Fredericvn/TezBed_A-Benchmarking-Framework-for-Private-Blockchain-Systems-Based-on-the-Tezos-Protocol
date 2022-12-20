@@ -1,0 +1,124 @@
+- name: Unmount, dettach and then delete data storage/volume from cloud
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+  vars_prompt:
+    - name: openstack_password
+      prompt: What is your password for the openstack cloud
+    - name: name_of_volume
+      prompt: What is the name of the volume / data storage you want to delete
+    # - name: mount_dir
+    #   prompt: Whats the absolute path of the mounting point (directory), your volume was mounted to (e.g. /home/ubuntu/logs_database)
+    #   The mount dir is now defined in the directories role
+
+  tasks:
+    - name: include clouds file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/clouds.yaml"
+    - name: include cloud quota file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/cloud_quota.yaml"
+
+    - name: Check validity of input
+      block:
+        - name: Retrieve info about current volumes
+          openstack.cloud.volume_info:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+            details: true
+          register: volumes_info
+          no_log: true
+        - name: Set device
+          ansible.builtin.set_fact:
+            device: "{{ volumes_info.volumes | json_query(volume_query) }}"
+          vars:
+            volume_query: "[?name == '{{ name_of_volume }}'].attachments[*].device"
+        - name: Display volume info
+          ansible.builtin.debug:
+            msg: "{{ device }}"
+
+        - name: Retrieve info about current instances
+          openstack.cloud.server_info:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+          register: server_result
+          no_log: true
+
+    - name: Unmount, dettach and then delete data storage/volume from cloud
+      block:
+        - name: Device mount's entry will be removed from fstab and will also unmount the device and remove the mount point
+          ansible.posix.mount:
+            path: "{{ mount_dir }}"
+            state: absent
+          become: true
+
+        - name: Get the IP of the controller host/localhost then lookup the host name based on IP
+          block:
+            - name: Get the IP of the controller host
+              ansible.builtin.shell:
+                cmd: hostname -I | awk '{print $1}'
+              register: ch_ip
+              changed_when: ch_ip != ""
+            - name: Set the name of the controller host
+              ansible.builtin.set_fact:
+                name_of_host: "{{ (server_result.openstack_servers | json_query(instance_query))[0] }}"
+              vars:
+                instance_query: "[? accessIPv4 == '{{ ch_ip.stdout }}'].name"
+
+        - name: Dettach volume from host
+          openstack.cloud.server_volume:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+            state: absent
+            server: "{{ name_of_host }}"
+            volume: "{{ name_of_volume }}"
+          register: dettached_volume
+          no_log: true
+
+        - name: Delete volume / data storage from cloud
+          openstack.cloud.volume:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+            display_name: "{{ name_of_volume }}"
+            state: absent
+          no_log: true
+
+        - name: Show result of deletion
+          ansible.builtin.debug:
+            msg: "The volume '{{ name_of_volume }}' has successfully been dettached from '{{ name_of_host }}' and deleted, the \
+            mounting point '{{ mount_dir }}' was deleted and /etc/fstab changed accordingly"
+      when:
+        - (device|length > 0 )
+
+    - name: Abort deletion, entered name of volume doesn't exist
+      ansible.builtin.debug:
+        msg: "The entered name: - {{ name_of_volume }} - is not a volume, thus can't be deleted"
+      when: (device|length == 0 )

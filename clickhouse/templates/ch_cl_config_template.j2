@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<config>
+    <user>{{ database_user }}</user>
+    <host>{{ host_ip }}</host>
+    <secure>true</secure>
+    <openSSL>
+
+        <client>
+            <caConfig>{{ cl_cert_dir }}/ca.pem</caConfig>
+            <certificateFile>{{ cl_cert_dir }}/client.pem</certificateFile>
+            <privateKey>{{ cl_cert_dir }}/client.key</privateKey>
+            <invalidCertificateHandler>
+                <name>AcceptCertificateHandler</name>
+            </invalidCertificateHandler>
+
+        </client>
+
+    </openSSL>
+</config>
+

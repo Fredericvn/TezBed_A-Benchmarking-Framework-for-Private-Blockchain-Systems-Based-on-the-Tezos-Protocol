@@ -1,0 +1,263 @@
+---
+
+all:
+  hosts:
+    tezos_1:
+      ansible_host: 193.196.36.159
+    tezos_2:
+      ansible_host: 193.196.39.109
+    tezos_3:
+      ansible_host: 193.196.36.248
+    tezos_4:
+      ansible_host: 193.196.36.58
+    tezos_5:
+      ansible_host: 193.196.39.18
+    tezos_6:
+      ansible_host: 193.196.39.142
+    tezos_7:
+      ansible_host: 193.196.37.153
+    tezos_8:
+      ansible_host: 193.196.38.5
+    tezos_9:
+      ansible_host: 193.196.37.237
+    tezos_10:
+      ansible_host: 193.196.38.221
+    tezos_11:
+      ansible_host: 193.196.38.198
+    tezos_12:
+      ansible_host: 193.196.37.19
+    tezos_13:
+      ansible_host: 193.196.37.56
+    tezos_14:
+      ansible_host: 193.196.39.91
+    tezos_15:
+      ansible_host: 193.196.36.134
+    tezos_16:
+      ansible_host: 193.196.38.121
+    tezos_17:
+      ansible_host: 193.196.37.100
+    tezos_18:
+      ansible_host: 193.196.38.206
+    tezos_19:
+      ansible_host: 193.196.38.57
+    tezos_20:
+      ansible_host: 193.196.38.239
+    tezos_21:
+      ansible_host: 193.196.37.71
+    tezos_22:
+      ansible_host: 193.196.38.82
+    tezos_23:
+      ansible_host: 193.196.39.121
+    tezos_24:
+      ansible_host: 193.196.37.70
+    tezos_25:
+      ansible_host: 193.196.39.146
+    tezos_26:
+      ansible_host: 193.196.38.87
+    tezos_27:
+      ansible_host: 193.196.38.63
+    tezos_28:
+      ansible_host: 193.196.39.236
+    tezos_29:
+      ansible_host: 193.196.37.174
+    tezos_30:
+      ansible_host: 193.196.37.223
+    tezos_31:
+      ansible_host: 193.196.38.224
+    tezos_32:
+      ansible_host: 193.196.37.216
+    tezos_33:
+      ansible_host: 193.196.39.175
+    tezos_34:
+      ansible_host: 193.196.36.237
+    tezos_35:
+      ansible_host: 193.196.36.83
+    tezos_36:
+      ansible_host: 193.196.38.156
+    tezos_37:
+      ansible_host: 193.196.37.42
+    tezos_38:
+      ansible_host: 193.196.37.15
+    tezos_39:
+      ansible_host: 193.196.38.19
+    tezos_40:
+      ansible_host: 193.196.38.185
+    tezos_41:
+      ansible_host: 193.196.37.54
+    tezos_42:
+      ansible_host: 193.196.38.228
+    tezos_43:
+      ansible_host: 193.196.36.249
+    tezos_44:
+      ansible_host: 193.196.39.137
+    tezos_45:
+      ansible_host: 193.196.38.36
+    tezos_46:
+      ansible_host: 193.196.38.144
+    tezos_47:
+      ansible_host: 193.196.39.132
+    tezos_48:
+      ansible_host: 193.196.37.195
+    tezos_49:
+      ansible_host: 193.196.37.238
+    tezos_50:
+      ansible_host: 193.196.39.104
+    tezos_51:
+      ansible_host: 193.196.39.107
+    tezos_52:
+      ansible_host: 193.196.37.235
+    tezos_53:
+      ansible_host: 193.196.37.166
+    tezos_54:
+      ansible_host: 193.196.36.102
+    tezos_55:
+      ansible_host: 193.196.39.158
+    tezos_56:
+      ansible_host: 193.196.36.142
+    tezos_57:
+      ansible_host: 193.196.36.94
+    tezos_58:
+      ansible_host: 193.196.36.148
+    tezos_59:
+      ansible_host: 193.196.39.167
+    tezos_60:
+      ansible_host: 193.196.36.220
+    tezos_61:
+      ansible_host: 193.196.37.208
+    tezos_62:
+      ansible_host: 193.196.38.78
+    tezos_63:
+      ansible_host: 193.196.38.27
+    tezos_64:
+      ansible_host: 193.196.38.192
+    tezos_65:
+      ansible_host: 193.196.39.14
+    tezos_66:
+      ansible_host: 193.196.36.225
+    tezos_67:
+      ansible_host: 193.196.38.174
+    tezos_68:
+      ansible_host: 193.196.36.209
+    tezos_69:
+      ansible_host: 193.196.39.96
+    tezos_70:
+      ansible_host: 193.196.36.99
+    tezos_71:
+      ansible_host: 193.196.39.43
+    tezos_72:
+      ansible_host: 193.196.38.79
+    tezos_73:
+      ansible_host: 193.196.36.207
+    tezos_74:
+      ansible_host: 193.196.36.218
+    tezos_75:
+      ansible_host: 193.196.37.79
+    tezos_76:
+      ansible_host: 193.196.39.162
+    tezos_77:
+      ansible_host: 193.196.37.115
+    tezos_78:
+      ansible_host: 193.196.39.3
+    tezos_79:
+      ansible_host: 193.196.38.195
+    tezos_80:
+      ansible_host: 193.196.36.160
+    tezos_81:
+      ansible_host: 193.196.37.14
+    tezos_82:
+      ansible_host: 193.196.39.223
+    tezos_83:
+      ansible_host: 193.196.39.134
+    tezos_84:
+      ansible_host: 193.196.36.208
+    tezos_85:
+      ansible_host: 193.196.37.119
+    tezos_86:
+      ansible_host: 193.196.37.224
+    tezos_87:
+      ansible_host: 193.196.38.209
+    tezos_88:
+      ansible_host: 193.196.39.187
+    tezos_89:
+      ansible_host: 193.196.38.1
+    tezos_90:
+      ansible_host: 193.196.39.66
+    tezos_91:
+      ansible_host: 193.196.38.232
+    tezos_92:
+      ansible_host: 193.196.36.109
+    tezos_93:
+      ansible_host: 193.196.36.66
+    tezos_94:
+      ansible_host: 193.196.36.38
+    tezos_95:
+      ansible_host: 193.196.37.254
+    tezos_96:
+      ansible_host: 193.196.39.247
+    tezos_97:
+      ansible_host: 193.196.36.112
+    tezos_98:
+      ansible_host: 193.196.39.239
+    tezos_99:
+      ansible_host: 193.196.39.67
+    tezos_100:
+      ansible_host: 193.196.38.175
+    tezos_101:
+      ansible_host: 193.196.36.79
+    tezos_102:
+      ansible_host: 193.196.37.222
+    tezos_103:
+      ansible_host: 193.196.36.219
+    tezos_104:
+      ansible_host: 193.196.38.14
+    tezos_105:
+      ansible_host: 193.196.39.227
+    tezos_106:
+      ansible_host: 193.196.38.204
+    tezos_107:
+      ansible_host: 193.196.38.253
+    tezos_108:
+      ansible_host: 193.196.39.42
+    tezos_109:
+      ansible_host: 193.196.37.143
+    tezos_110:
+      ansible_host: 193.196.37.151
+    tezos_111:
+      ansible_host: 193.196.39.32
+    tezos_112:
+      ansible_host: 193.196.39.40
+    tezos_113:
+      ansible_host: 193.196.36.75
+    tezos_114:
+      ansible_host: 193.196.38.39
+    tezos_115:
+      ansible_host: 193.196.38.42
+    tezos_116:
+      ansible_host: 193.196.36.214
+    tezos_117:
+      ansible_host: 193.196.38.44
+    tezos_118:
+      ansible_host: 193.196.36.44
+    tezos_119:
+      ansible_host: 193.196.39.144
+    tezos_120:
+      ansible_host: 193.196.39.117
+    tezos_121:
+      ansible_host: 193.196.39.169
+    tezos_122:
+      ansible_host: 193.196.39.241
+    tezos_123:
+      ansible_host: 193.196.39.99
+    tezos_124:
+      ansible_host: 193.196.39.150
+    tezos_125:
+      ansible_host: 193.196.37.200
+    tezos_126:
+      ansible_host: 193.196.37.40
+  vars:
+    ansible_user: ubuntu
+    vm_prefix: tezos
+    vm_flavor: 
+      flavor_name: m1.large
+      flavor_ram: 8192
+      flavor_vcpu: 4

@@ -1,0 +1,269 @@
+***************************************************************************
+** ISP: IBM Spectrum Protect / TSM: Tivoli Storage Manager
+**
+** Client System Option File "dsm.sys" for UNIX/Linux
+** ==================================================
+** ISP-Versionen:
+** - 64-bit:
+** - LinuxX86_64      (64-bit): 8.1.x.y (x => 13)
+** - LinuxX86_deb     (64-bit): 8.1.x.y (x => 13)
+**
+** RedHat 5, CentOS 5, Fedora 19/20/21/22
+** - LinuxX86_64      (64-bit): 7.1.8.x (x => 8)
+**
+** Debian 6, Ubuntu 12/13
+** - LinuxX86_deb     (64-bit): 7.1.8.x (x => 8)
+**
+** Solaris 10 x86 / Solaris 11 x86
+** - Solaris11_x86    (64-bit): 8.1.x.y (x => 13)
+**
+** - 32-bit:
+** kein Client verfuegbar
+**
+**
+** Version       : 06.04.2018 / Fl
+** Aktualisierung: 29.06.2021 / Fl (v6tcpip)
+** Aktualisierung: 19.01.2022 / IM (cadlistenonport no)
+** Aktualisierung: 23.03.2022 / IM (nur noch backup stanza)
+**
+** erzeugt am    : 12.09.2022 16:26 Uhr
+***************************************************************************
+** Eine Beschreibung der aufgefuehrten Optionen erhalten Sie wie folgt:
+** Starten Sie die ISP-Befehlszeile
+** - dsmc
+**   - Hinter dem Prompt "Protect>" geben Sie dann den entsprechenden
+**     "help"-Befehl ein, zum Beispiel
+**     help nodename
+**   - Beenden der ISP-Befehlszeile durch Eingabe von "quit"
+***************************************************************************
+**
+   defaultserver   backup
+**
+***************************************************************************
+**
+**
+**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**
+** begin of stanza containing options for the backup server               *
+**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**
+**
+   servername      backup
+**
+**=========================================================================
+   nodename        aifb-frno-01
+** KIT-Account :   wq7976
+**=========================================================================
+** The
+** DOMAIN
+** option specifies the file spaces (file systems and/or directories
+** within a file system) that you want to include for incremental backup
+** in your client domain.
+** 
+** The
+** VIRTUALMOUNTPOINT
+** option defines a virtual mount point for a file system if you
+** want to consider files for backup that begin with a specific
+** directory within that file system.
+**
+** domain                  /name_of_fs/dir_within_fs
+** virtualmountpoint       /name_of_fs/dir_within_fs
+** domain                  /name_of_fs/another_dir_within_fs
+** virtualmountpoint       /name_of_fs/another_dir_within_fs
+**
+**
+   domain            /home/ubuntu/logs_database
+   virtualmountpoint /home/ubuntu/logs_database
+**
+**=========================================================================
+   tcpport                 1500
+   tcpserveraddress        scc-backup-s01.scc.kit.edu
+   commmethod              v6tcpip
+**=========================================================================
+** The
+** PASSWORDACCESS
+** option specifies whether you want to generate your password 
+** automatically or set as a user prompt.
+** prompt  : You are prompted for your workstation password each
+**           time a client connects to the server.
+**           This is the default.
+** generate: Encrypts and stores your password locally and generates
+**           a new password when the old password expires.
+**
+   passwordaccess          generate
+**=========================================================================
+** The
+** MEMORYEFFICIENTBACKUP
+** option specifies the memory-conserving algorithm to use for processing
+** full file space backups. One method backs up one directory at a time,
+** using less memory. The other method uses much less memory, but requires
+** more disk space.
+** no : Your client node uses the faster, more memory-intensive
+**      method when processing incremental backups.
+**      This is the default.
+** yes: Your client node uses the method that requires less memory
+**      when processing incremental backups.
+** diskcachemethod:
+**      Your client node uses the method that requires much less memory
+**      but more disk space when processing incremental backups for
+**      full file systems.
+**
+*  memoryefficientbackup   yes
+**
+** The
+** DISKCACHELOCATION
+** option specifies the location where the disk cache database will be
+** created if the option "memoryefficientbackup=diskcachemethod" is set
+** during an incremental backup.
+** The default location is to create the disk cache file in the root of
+** the file space being processed.
+**
+*  diskcachelocation       /tmp/TSMcache
+**=========================================================================
+** Encryption
+** You can encrypt the data that is sent to the server during a
+** backup or archive operation using standard DES 56-bit encryption
+** or 128-bit AES data encryption. See "encryptiontype" option.
+** Use the "include.encrypt" and "exclude.encrypt" options to select
+** files for encryption.
+** These options must be included in the file referred by the
+** "inclexcl" option.
+** By default, files are not encrypted unless they are explicitly
+** included using the "include.encrypt" option.
+** To encrypt file data, you must select an encryption key password,
+** which TSM uses to generate the encryption key for encrypting and
+** decrypting the file data.
+** You can specify whether to save the encryption key password in a
+** file named "TSM.PWD" by using the "encryptkey" option.
+** While restoring the encrypted file, TSM will prompt you for the
+** key password to decrypt the file in the following cases:
+** - If the "encryptkey" option is set to "prompt".
+** - If the key supplied by the user in the above case does not match.
+** - If the "encryptkey" option is set to "save" and the locally
+**   saved key password does not match the encrypted file.
+**
+**
+** The
+** ENCRYPTKEY
+** option specifies whether to save the encryption key password locally
+** when performing a backup-archive operation or whether to prompt for
+** the encryption key password.
+** save  : Specifies that you want to save the encryption key password
+**         to a local "TSM.PWD" file. If you set the 'encryptkey' option
+**         to 'save', you are only prompted the first time you perform
+**         an operation. Thereafter, TSM does not prompt for the encryption
+**         password.
+**         This option can only be used when "passwordaccess generate" is
+**         also specified.
+**         This is the default.
+** prompt: TSM prompts for the encryption password for each backup, archive
+**         and restore operation.
+**
+** If you use data encryption when backing up your data and you use the
+** ENCRYPTKEY SAVE and PASSWORDACCESS GENERATE options, ensure that the
+** host name of your client system remains constant. If the host name
+** changes, the encryption key stored in the password file (TSM.PWD)
+** is no longer valid.
+** In some DHCP environments, the host name changes when the system
+** receives a new TCP/IP address from the DHCP server. This will cause
+** your encryption key to become invalid.
+** Manually changing the host name will also cause your encryption key
+** to be invalid.
+** Data backed up with an invalid encryption key may not be restorable.
+** Do not use ENCRYPTKEY SAVE in a DHCP environment where the host name
+** changes when the TCP/IP address changes. If you must encrypt your data,
+** consider using a static IP address for your system, or use
+** ENCRYPTKEY PROMPT.
+** If you must manually change the host name, rename the TSM.PWD file.
+** During the next client session, you will be prompted to enter the
+** password for your client node and the encryption key password, which
+** will then be saved and associated with your new host name.
+**
+*  encryptkey              prompt
+**
+** The
+** ENCRYPTIONTYPE
+** option allows you to specify the algorithm for data encryption.
+** DES56 : DES 56-bit data encryption.
+** AES128: AES 128-bit data encryption.
+**         This is the default.
+** AES256: AES 256-bit data encryption.
+**
+*  encryptiontype          AES256
+**=========================================================================
+**
+** ********************************************************************** *
+** Please contact the Backup-Team before activating/changing one of these *
+** options.                                                               *
+** ********************************************************************** *
+**
+**=========================================================================
+** The
+** MANAGEDSERVICES
+** option specifies whether the TSM Client Acceptor service (CAD)
+** manages the scheduler.
+**
+   managedservices         schedule
+   cadlistenonport         no   
+   schedmode               polling
+**=========================================================================
+** The
+** INCLEXCL
+** option specifies the path and file name of an include-exclude
+** options file.
+**
+*  inclexcl                /usr/local/tsm/backup.inclexcl
+**=========================================================================
+** The
+** SCHEDLOGNAME
+** option specifies the path and file name where you want to store
+** schedule log information.
+**
+*  schedlogname            /usr/local/tsm/log/dsmsched.log
+**
+   schedlogretention       32 d
+**
+** The
+** ERRORLOGNAME
+** option specifies the fully qualified path and file name of the file in
+** which to store information about errors that occur during processing.
+** The value for this option overrides the DSM_LOG environment variable.
+**
+*  errorlogname            /usr/local/tsm/log/dsmerror.log
+**
+   errorlogretention       32 d
+**
+** The
+** INSTRLOGNAME
+** option specifies the fully qualified path and file name of the file in
+** which to store performance information that the client collects.
+** The value for this option overrides the DSM_LOG environment variable.
+**
+*  instrlogname            /usr/local/tsm/log/dsminstr.log
+**
+*  instrlogmax             50
+**=========================================================================
+*  compression             yes
+**
+   resourceutilization     1
+**
+   guitreeviewafterbackup  yes
+**=========================================================================
+** The 
+** PASSWORDDIR
+** option specifies the directory location in which to store an
+** encrypted password file.
+** The name of the password file is "TSM.PWD".
+** The default directory for AIX is /etc/security/adsm and for
+** other UNIX and Linux platforms it is /etc/adsm.
+**
+*  passworddir          /dir_of_your_choice
+**=========================================================================
+*  preschedulecmd       cmd_string
+*  prenschedulecmd      cmd_string
+**
+*  postschedulecmd      cmd_string
+*  postnschedulecmd     cmd_string
+**=========================================================================
+**
+**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**
+** end of stanza containing options for the backup server                 *
+**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**

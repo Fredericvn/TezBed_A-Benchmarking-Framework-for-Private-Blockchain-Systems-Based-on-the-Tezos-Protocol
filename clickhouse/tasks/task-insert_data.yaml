@@ -1,0 +1,57 @@
+- name: "Insert protocol_constants, vm_hardware_properties and experiment_vars (only CH) into clickhouse tables"
+  include_tasks: "{{ git_project_dir }}/clickhouse/tasks/task-insert_table.yaml"
+  vars:
+    csv_path: "{{ experiments_dir }}/{{ chain_name_item }}/{{ chain_name_item }}_{{ table_name }}.csv"
+  loop:
+    - "protocol_constants"
+    - "vm_hardware_properties"
+    - "experiment_vars"
+  loop_control:
+    loop_var: table_name
+  when: by_localhost
+
+- name: "Insert endorsements, blocks, operations and system_logs (only genesis host) into clickhouse tables"
+  include_tasks: "{{ git_project_dir }}/clickhouse/tasks/task-insert_table.yaml"
+  when:
+    - genesis_host
+    - not by_localhost
+  vars:
+    csv_path: "{{ log_dir }}/{{ table_name }}.csv"
+  loop:
+    - "endorsements"
+    - "blocks"
+    - "operations"
+    - "system_log_cpl"
+    - "system_log_cpu"
+    - "system_log_dsk"
+    - "system_log_mem"
+    - "system_log_net_upper"
+    - "system_log_net"
+    - "system_log_prc"
+    - "system_log_prd"
+    - "system_log_prm"
+    - "system_log_psi"
+  loop_control:
+    loop_var: table_name
+
+- name: "Insert operations (all hosts, but genesis host) into clickhouse tables"
+  include_tasks: "{{ git_project_dir }}/clickhouse/tasks/task-insert_table.yaml"
+  when:
+    - not genesis_host
+    - not by_localhost
+  vars:
+    csv_path: "{{ log_dir }}/{{ table_name }}.csv"
+  loop:
+    - "operations"
+    - "system_log_cpl"
+    - "system_log_cpu"
+    - "system_log_dsk"
+    - "system_log_mem"
+    - "system_log_net_upper"
+    - "system_log_net"
+    - "system_log_prc"
+    - "system_log_prd"
+    - "system_log_prm"
+    - "system_log_psi"
+  loop_control:
+    loop_var: table_name

@@ -1,0 +1,10 @@
+- name: Install tmux for running ansible playbooks in the background
+  hosts: localhost
+  become: true
+
+  tasks:
+    - name: Install tmux
+      ansible.builtin.apt:
+        name:
+          - tmux
+        update_cache: true

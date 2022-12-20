@@ -1,0 +1,37 @@
+---
+# Provide the name of the git project
+git_project_path: "TezBed"
+
+# Provide the directory, where the git project was cloned to, if other than home directory of the current user.
+git_project_dir: "/home/ubuntu/{{ git_project_path }}"
+
+# Path to mount the external volume to (for the database and raw logs)
+mount_dir: "/home/ubuntu/logs_database"
+# Path to the database
+database_dir: "{{ mount_dir }}/clickhouse/"
+# Path to the experiment directory storing all files related to the experiment, including raw logs
+experiments_dir: "{{ mount_dir }}/experiments"
+
+# Path to the clickhouse table descriptions
+cl_user_files_path: "{{ git_project_dir }}/clickhouse/table_description"
+
+# Path to the tezos client directory on the TH
+client_dir: "/home/ubuntu/.tezos-client"
+# Path to the tezos node directory on the TH
+node_dir: "/home/ubuntu/.tezos-node"
+# Path to the log directory on the TH, includes all logs not just tezos logs
+log_dir: "/home/ubuntu/tezos-logs"
+# Path to the tezos accounts on the TH
+accounts_dir: "/home/ubuntu/tezos-accounts"
+# Path to the scripts (e.g., run_workload.py) on the TH
+scripts_dir: "/home/ubuntu/scripts"
+# Path to the workload directory on the TH
+workload_dir: "/home/ubuntu/tezos-workload"
+
+# Path to the clickhouse-server TSL certificate directory
+sv_cert_dir: "/etc/clickhouse-server"
+# Path to the clickhouse-client TSL certificate directory
+cl_cert_dir: "/etc/ssl"
+# Path to the clickhouse-client config directory
+ch_client_config_dir: "/home/ubuntu/.clickhouse-client"
+...

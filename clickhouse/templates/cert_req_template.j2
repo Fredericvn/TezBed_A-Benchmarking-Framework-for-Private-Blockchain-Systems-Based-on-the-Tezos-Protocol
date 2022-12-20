@@ -1,0 +1,19 @@
+[ req ]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_ca
+prompt = no
+[ req_distinguished_name ]
+C = DE
+ST = BW
+O = Bytebase
+CN = root
+[ v3_ca ]
+basicConstraints = critical,CA:TRUE
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer:always
+[ v3_req ]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[ alt_names ]
+IP.1 = {{ ch_ip_v4.stdout}}

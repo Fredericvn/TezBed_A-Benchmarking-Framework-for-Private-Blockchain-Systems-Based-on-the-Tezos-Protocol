@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <users>
+        <{{ database_user }}>
+            <password_sha256_hex>{{ passw_ch_user_hex.stdout | trim }}</password_sha256_hex>
+
+            <access_management>1</access_management>
+
+            <networks>
+                <ip>127.0.0.1</ip>
+        {% for item in groups['all'] %}
+        <ip>{{ hostvars[item].ansible_host }}</ip>
+        {% endfor -%}
+            </networks>
+            <date_time_input_format>best_effort</date_time_input_format>
+
+            <profile>default</profile>
+
+            <default_database>default</default_database>
+        </{{ database_user }}>
+        <default>
+            <access_management>0</access_management>
+
+            <networks>
+                <ip>127.0.0.1</ip>
+            </networks>
+
+            <profile>readonly</profile>
+        </default>
+    </users>
+    <profiles>
+        <!-- Profile that allows only read queries. -->
+        <readonly>
+            <readonly>1</readonly>
+        </readonly>
+    </profiles>
+</clickhouse>

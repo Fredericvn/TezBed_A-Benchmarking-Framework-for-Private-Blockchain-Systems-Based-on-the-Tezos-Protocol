@@ -1,0 +1,22 @@
+---
+- name: Create Clickhouse Table
+  ansible.builtin.command:
+    cmd: "clickhouse-client --password {{ passw_clickhouse_user }} --query='\
+    CREATE TABLE IF NOT EXISTS {{ database_name }}.{{ table_name }} \
+    ({{ lookup('vars', 'tb_' + table_name) }}) \
+    ENGINE = MergeTree() \
+    PRIMARY KEY ({{ primary_keys }})'"
+  register: create_result
+  changed_when: create_result != ""
+  no_log: true
+
+- name: Show Tables
+  ansible.builtin.command:
+    cmd: clickhouse-client --password {{ passw_clickhouse_user }} --query="DESCRIBE {{ database_name }}.{{ table_name }}"
+  register: desc_result
+  changed_when: desc_result != ""
+  no_log: true
+
+- name: Show Tables
+  ansible.builtin.debug:
+    msg: "{{ desc_result.stdout_lines }}"

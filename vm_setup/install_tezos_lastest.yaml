@@ -1,0 +1,38 @@
+- name: Install Tezos
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install aptitude using apt
+      ansible.builtin.apt:
+        name: aptitude
+        state: present
+        update_cache: true
+        force_apt_get: true
+
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+          - lsb-release
+          - python3-pip
+        update_cache: true
+
+    - name: Add Tezos Repository
+      ansible.builtin.apt_repository:
+        repo: ppa:serokell/tezos
+        state: present
+
+    - name: Install Tezos
+      ansible.builtin.apt:
+        name:
+          - tezos-client
+          - tezos-node
+          - tezos-baker-011-pthangz2
+          - tezos-endorser-011-pthangz2
+          - tezos-accuser-011-pthangz2
+        update_cache: true

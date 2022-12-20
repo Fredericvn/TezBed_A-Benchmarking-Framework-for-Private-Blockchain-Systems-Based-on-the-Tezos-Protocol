@@ -1,0 +1,39 @@
+- name: Install keychain and add SSH keys to keychain
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+
+  vars_prompt:
+    - name: name_th_ssh_key
+      prompt: "Whats the name of the TARGET HOST SSH key you want to add to the keychain?"
+
+    - name: name_git_ssh_key
+      prompt: "(Optional, leave blank to skip) Whats the name of the GIT SSH key you want to add to the keychain?"
+
+  tasks:
+    - name: Install keychain
+      ansible.builtin.apt:
+        name:
+          - keychain
+        update_cache: true
+      become: true
+
+    - name: Add target host and git SSH keys to ~/.bash_profile
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/vm_setup/bash_profile_template.j2"
+        dest: "/home/ubuntu/.bash_profile"
+        mode: 0644
+      vars:
+        path_th_ssh_key: "$HOME/.ssh/{{ name_th_ssh_key }}"
+        path_git_ssh_key: "$HOME/.ssh/{{ name_git_ssh_key }}"
+      when: name_git_ssh_key != ""
+
+    - name: Add  only target host SSH key to ~/.bash_profile
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/vm_setup/bash_profile_template.j2"
+        dest: "/home/ubuntu/.bash_profile"
+        mode: 0644
+      vars:
+        path_th_ssh_key: "$HOME/.ssh/{{ name_th_ssh_key }}"
+        path_git_ssh_key: ""
+      when: name_git_ssh_key == ""

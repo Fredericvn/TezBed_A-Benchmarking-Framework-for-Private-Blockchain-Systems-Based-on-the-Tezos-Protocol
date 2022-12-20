@@ -1,0 +1,12 @@
+name_of_chain;String
+hostname;String
+label;String
+datetime_u;DateTime
+interval;UInt64
+name_intf;String
+n_pkts_recv_intf;UInt64
+n_bytes_recv_intf;UInt64
+n_pkts_transm_intf;UInt64
+n_bytes_transm_intf;UInt64
+intf_speed;UInt64
+duplex_mode;UInt8

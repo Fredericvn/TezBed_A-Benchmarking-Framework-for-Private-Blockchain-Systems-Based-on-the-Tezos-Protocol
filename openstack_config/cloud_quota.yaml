@@ -1,0 +1,5 @@
+cloud_quota:
+  max_instances: 132
+  max_vCPUs: 520
+  max_ram_MB: 1064960
+  max_volume_GiB: 3000 #  Maximum amount of GiB for a maximum number of 10 volumes

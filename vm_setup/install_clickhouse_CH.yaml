@@ -1,0 +1,37 @@
+- name: Install clickhouse server and client (as database for logs)
+  hosts: localhost
+  become: true
+
+  tasks:
+    - name: Install aptitude using apt
+      ansible.builtin.apt:
+        name: aptitude
+        state: present
+        update_cache: true
+        force_apt_get: true
+
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - dirmngr
+        update_cache: true
+
+    - name: Add clickhouse apt Key
+      ansible.builtin.apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: 8919F6BD2B48D754
+        state: present
+
+    - name: Add Clickhouse Repository
+      ansible.builtin.apt_repository:
+        repo: "deb https://packages.clickhouse.com/deb stable main"
+        state: present
+
+    - name: Install Clickhouse Server and Client
+      ansible.builtin.apt:
+        name:
+          - clickhouse-server
+          - clickhouse-client
+        update_cache: true

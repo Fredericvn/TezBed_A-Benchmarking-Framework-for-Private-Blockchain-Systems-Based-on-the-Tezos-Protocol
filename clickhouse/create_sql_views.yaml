@@ -1,0 +1,37 @@
+- name: Execute sql queries to create views on the database tables
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+    - role: '../roles/benchmark'
+    - role: '../roles/tezos'
+    - role: '../roles/clickhouse'
+  vars_prompt:
+    - name: passw_clickhouse_user
+      prompt: "Setup a new password for the clickhouse user: '{{ database_user }}'"
+
+  tasks:
+    - name: Create sql views, order of view creation must fullfill dependencies of other views
+      include_tasks: ./tasks/task-exec_sql_file.yaml
+      vars:
+        sql_path: "{{ git_project_dir }}/clickhouse/SQL/tezos_benchmark/views/{{ item }}"
+      loop:
+        - ops_gas_consumption_v.sql # dep: -
+        - ops_trx_summary_lvl_v.sql # dep: -
+        - ops_trx_summary_v.sql # dep: -
+        - wkl_interval_lvl_v.sql # dep: -
+        - wkl_start_blocklvl_lvl_v.sql # dep: -
+        - wkl_start_blocklvl_v.sql # dep: -
+        - workload_time_host_lvl_v.sql # dep: -
+        - host_count_v.sql # dep: -
+        - capacity_lvl_v.sql # dep: ops_gas_consumption_v
+        - block_trx_summary_lvl_v.sql # dep: wkl_interval_lvl_v
+        - block_trx_summary_v.sql # dep: wkl_start_blocklvl_v
+        - overtime_lvl_v.sql # dep: workload_time_host_lvl_v
+        - trx_latency_lvl_v.sql # dep: capacity_lvl_v
+        - trx_throughput_lvl_v.sql # dep: wkl_interval_lvl_v, capacity_lvl_v
+        - theoretical_workload_lvl_v.sql # dep: capacity_lvl_v
+        - theoretical_workload_v.sql # dep: theoretical_workload_lvl_v
+        - workload_summary_lvl_v.sql # dep: ops_trx_summary_lvl_v, block_trx_summary_lvl_v, overtime_lvl_v, theoretical_workload_lvl_v
+        - workload_summary_v.sql # dep: ops_trx_summary_v, block_trx_summary_v, theoretical_workload_v
+        - not_valid_experiments_v.sql # dep: workload_summary_v
+        - valid_experiments_v.sql # dep: workload_summary_v

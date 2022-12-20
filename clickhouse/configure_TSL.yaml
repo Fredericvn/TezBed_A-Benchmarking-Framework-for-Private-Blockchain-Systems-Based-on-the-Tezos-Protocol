@@ -1,0 +1,114 @@
+- name: Generate a self signed SSL certificate for a secure conncetion between Clickhouse server and client
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+    - role: '../roles/benchmark'
+    - role: '../roles/tezos'
+    - role: '../roles/clickhouse'
+  vars_prompt:
+    - name: create_dhparam
+      prompt: "Do you want to create a new Diffie-Hellman parameters file, this will take several minutes - enter: yes / no"
+
+  tasks:
+    - name: Get the IPv4 of controller host, where the clickhouse server is running on
+      ansible.builtin.shell:
+        cmd: hostname -I | awk '{print $1}'
+      register: ch_ip_v4
+      changed_when: ch_ip_v4.stdout != ""
+
+    - name: Create SSL certification request configuration with server host IPv4
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/clickhouse/templates/cert_req_template.j2"
+        dest: "{{ git_project_dir }}/clickhouse/templates/cert_req.conf"
+        mode: 0644
+
+    - name: Generate Root CA Key and Certificate
+      block:
+        - name: Generate Root CA Key (.key)
+          ansible.builtin.command:
+            cmd: openssl genrsa -out {{ sv_cert_dir }}/ca.key 2048
+          register: ca_key_result
+          changed_when: ca_key_result != ""
+
+        - name: Generate CA certificate (.pem)
+          ansible.builtin.command:
+            cmd: "openssl req -x509 -new -key {{ sv_cert_dir }}/ca.key -sha256 -days 36500 \
+            -out {{ git_project_dir }}/clickhouse/ca.pem -extensions 'v3_ca' -config {{ git_project_dir }}/clickhouse/templates/cert_req.conf"
+          register: ca_cert_result
+          changed_when: ca_cert_result != ""
+
+        - name: Copy TSL ca certificate to save clickhouse-server directory
+          ansible.builtin.copy:
+            src: "{{ git_project_dir }}/clickhouse/ca.pem"
+            dest: "{{ sv_cert_dir }}/ca.pem"
+            mode: 0644
+      become: true
+
+    - name: Generate Server Key and Certificate
+      block:
+        - name: Generate Server Key (.key)
+          ansible.builtin.command:
+            cmd: openssl genrsa -out {{ sv_cert_dir }}/server.key 2048
+          register: server_key_result
+          changed_when: server_key_result != ""
+
+        - name: Generate server Certificate Signing Request (.csr)
+          ansible.builtin.command:
+            cmd: "openssl req -new -sha256 -key {{ sv_cert_dir }}/server.key \
+            -out {{ sv_cert_dir }}/server.csr -subj '/C=DE/ST=BW/O=Bytebase/CN={{ ch_ip_v4.stdout }}'"
+          register: s_csr_result
+          changed_when: s_csr_result != ""
+
+        - name: Generate Server certificate (.pem)
+          ansible.builtin.command:
+            cmd: "openssl x509 -req -days 36500 -sha256 -extensions v3_req -CA {{ sv_cert_dir }}/ca.pem \
+            -CAkey {{ sv_cert_dir }}/ca.key -CAcreateserial -in {{ sv_cert_dir }}/server.csr -out {{ sv_cert_dir }}/server.pem"
+          register: server_cert_result
+          changed_when: server_cert_result != ""
+
+        - name: Change the server.key file permissions
+          ansible.builtin.file:
+            path: "{{ sv_cert_dir }}/server.key"
+            mode: 0644
+
+      become: true
+
+    - name: Generate Client Key and Certificate
+      block:
+        - name: Generate Client Key (.key)
+          ansible.builtin.command:
+            cmd: openssl genrsa -out {{ git_project_dir }}/clickhouse/client.key 2048
+          register: client_key_result
+          changed_when: client_key_result != ""
+
+        - name: Generate client Certificate Signing Request (.csr)
+          ansible.builtin.command:
+            cmd: "openssl req -new -sha256 -key {{ git_project_dir }}/clickhouse/client.key \
+            -out {{ git_project_dir }}/clickhouse/client.csr -subj '/C=DE/ST=BW/O=Bytebase/CN=dev.testssl.com'"
+          register: cl_csr_result
+          changed_when: cl_csr_result != ""
+
+        - name: Generate Client certificate (.pem)
+          ansible.builtin.command:
+            cmd: "openssl x509 -req -days 36500 -sha256 -extensions v3_req -CA {{ sv_cert_dir }}/ca.pem \
+            -CAkey {{ sv_cert_dir }}/ca.key -CAcreateserial -in {{ git_project_dir }}/clickhouse/client.csr \
+            -out {{ git_project_dir }}/clickhouse/client.pem"
+          register: server_cert_result
+          changed_when: server_cert_result != ""
+          become: true
+
+    - name: Generate Diffie-Hellman parameters file
+      block:
+        - name: Generate Diffie-Hellman parameters file (.pem), it takes a couple of minutes
+          ansible.builtin.command:
+            cmd: "openssl dhparam -out {{ git_project_dir }}/clickhouse/dhparam.pem 4096"
+          register: ch_result
+          changed_when: ch_result != ""
+          when: create_dhparam == "yes"
+
+        - name: Copy Diffie-Hellman parameters file to server certificate directory
+          ansible.builtin.copy:
+            src: "{{ git_project_dir }}/clickhouse/dhparam.pem"
+            dest: "{{ sv_cert_dir }}/dhparam.pem"
+            mode: 0644
+      become: true

@@ -1,0 +1,7 @@
+---
+- name: "Execute SQL query from file in Clickhouse"
+  ansible.builtin.shell:
+    cmd: "clickhouse-client --password {{ passw_clickhouse_user }} < {{ sql_path }}"
+  register: sql_query_result
+  changed_when: sql_query_result.stdout != ""
+  no_log: true

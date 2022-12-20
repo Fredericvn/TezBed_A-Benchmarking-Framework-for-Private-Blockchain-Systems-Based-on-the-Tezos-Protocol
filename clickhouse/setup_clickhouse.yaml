@@ -1,0 +1,109 @@
+- name: Setup the Clickhouse config (incl. TSL) and user file
+  hosts: all
+  roles:
+    - role: '../roles/project_directories'
+    - role: '../roles/benchmark'
+    - role: '../roles/tezos'
+    - role: '../roles/clickhouse'
+  vars_prompt:
+    - name: passw_clickhouse_user
+      prompt: "Setup a new password for the clickhouse user: '{{ database_user }}'"
+
+  tasks:
+    - name: Get the IPv4 of controller host, where the clickhouse server is running on
+      ansible.builtin.shell:
+        cmd: hostname -I | awk '{print $1}'
+      register: ch_ip_v4
+      changed_when: ch_ip_v4.stdout != ""
+      delegate_to: localhost
+      run_once: true
+
+    - name: Copy TSL client certificate and create clickhouse client config
+      block:
+        - name: On TH
+          block:
+            - name: Copy TSL client certificate to TH
+              ansible.builtin.copy:
+                src: "{{ git_project_dir }}/clickhouse/{{ item }}"
+                dest: "{{ cl_cert_dir }}/{{ item }}"
+                mode: 0644
+              loop:
+                - client.pem
+                - client.key
+                - ca.pem
+
+            - name: Create hidden .clickhouse-client directory on TH
+              ansible.builtin.file:
+                path: "{{ ch_client_config_dir }}"
+                state: directory
+                mode: 0777
+
+            - name: Create clickhouse client_config.xml from template on TH
+              ansible.builtin.template:
+                src: "{{ git_project_dir }}/clickhouse/templates/ch_cl_config_template.j2"
+                dest: "{{ ch_client_config_dir }}/config.xml"
+                mode: 0777
+              vars:
+                host_ip: "{{ ch_ip_v4.stdout }}"
+          become: true
+
+        - name: On CH
+          block:
+            - name: Copy TSL client certificate to CH
+              ansible.builtin.copy:
+                src: "{{ git_project_dir }}/clickhouse/{{ item }}"
+                dest: "{{ cl_cert_dir }}/{{ item }}"
+                mode: 0644
+              loop:
+                - ca.pem
+                - client.pem
+                - client.key
+
+            - name: Create hidden .clickhouse-client directory on CH
+              ansible.builtin.file:
+                path: "{{ ch_client_config_dir }}"
+                state: directory
+                mode: 0777
+
+            - name: Create clickhouse client_config.xml from template on CH
+              ansible.builtin.template:
+                src: "{{ git_project_dir }}/clickhouse/templates/ch_cl_config_template.j2"
+                dest: "{{ ch_client_config_dir }}/config.xml"
+                mode: 0777
+              vars:
+                host_ip: "127.0.0.1"
+
+          become: true
+          delegate_to: localhost
+          run_once: true
+
+
+    - name: Configure clickhouse with host IPs and hashed password, start the server and create the database
+      block:
+        - name: Hash your password for clickhouse user with sha256 and store as HEX
+          ansible.builtin.shell:
+            cmd: echo -n "{{ passw_clickhouse_user }}" | sha256sum | tr -d '-'
+          register: passw_ch_user_hex
+          changed_when: passw_ch_user_hex != ""
+
+        - name: Create clickhouse user_tezos.xml and config_tezos.xml
+          ansible.builtin.template:
+            src: "{{ git_project_dir }}/clickhouse/templates/ch_sv_{{ item }}_template.j2"
+            dest: "/etc/clickhouse-server/{{ item }}.d/ch_sv_{{ item }}.xml"
+            mode: 0644
+          loop:
+            - "users"
+            - "config"
+          become: true
+
+        - name: Start/ Restart the clickhouse-server to load the ch_sv_config.xml and ch_sv_user.xml
+          ansible.builtin.service:
+            name: clickhouse-server
+            state: restarted
+          become: true
+
+        - name: Pause for 3 seconds to start the clickhouse-server
+          ansible.builtin.pause:
+            seconds: 3
+      delegate_to: localhost
+      run_once: true

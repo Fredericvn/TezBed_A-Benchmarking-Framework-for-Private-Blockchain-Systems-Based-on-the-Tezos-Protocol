@@ -1,0 +1,64 @@
+- name: Install NTP client on target hosts and configure it
+  hosts: all
+  become: true
+
+  tasks:
+    - name: set IPv4 of controller host
+      ansible.builtin.shell:
+        cmd: hostname -I | awk '{print $1}'
+      register: ch_ip_v4
+      changed_when: ch_ip_v4.stdout != ""
+      delegate_to: localhost
+    - name: set hostname of controller host
+      ansible.builtin.command:
+        cmd: hostname
+      register: ch_hostname
+      changed_when: ch_hostname.stdout != ""
+      delegate_to: localhost
+    - name: Print Ip and hostname of controller host / controller
+      ansible.builtin.debug:
+        msg: "IP: {{ ch_ip_v4.stdout }}, hostname: {{ ch_hostname.stdout }}"
+
+    - name: Install ntpdate
+      ansible.builtin.apt:
+        name:
+          - ntpdate=1:4.2.8p12+dfsg-3ubuntu4.20.04.1
+        update_cache: true
+    - name: update NTP server config
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        insertafter: 127.0.0.1 localhost
+        line: "{{ ch_ip_v4.stdout }} {{ ch_hostname.stdout }}"
+
+    - name: set hostname of controller host
+      ansible.builtin.command:
+        cmd: sudo timedatectl set-ntp off
+      register: output
+      changed_when: output.stdout_lines != ""
+      ignore_errors: true
+
+    - name: Install ntp server
+      ansible.builtin.apt:
+        name:
+          - ntp=1:4.2.8p12+dfsg-3ubuntu4.20.04.1
+        update_cache: true
+
+    - name: update NTP server config
+      ansible.builtin.lineinfile:
+        path: /etc/ntp.conf
+        insertafter: "#broadcastclient"
+        line: "server {{ ch_hostname.stdout }} prefer iburst"
+    - name: restart the NTP server
+      ansible.builtin.service:
+        name: ntp
+        state: restarted
+        enabled: true
+
+    - name: print out status
+      ansible.builtin.command:
+        cmd: ntpq -p
+      register: sync_status
+      changed_when: sync_status.stdout_lines != ""
+    - name: Print synchronization status of NTP client with NTP server host
+      ansible.builtin.debug:
+        msg: "{{ sync_status.stdout_lines }}"

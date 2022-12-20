@@ -1,0 +1,16 @@
+- name: Install atop for system performance monitoring/logging
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install atop
+      ansible.builtin.apt:
+        name:
+          - atop=2.4.0-3
+        update_cache: true
+
+    - name: deactivate the automatic system logs
+      ansible.builtin.service:
+        name: atop
+        state: stopped
+        enabled: false

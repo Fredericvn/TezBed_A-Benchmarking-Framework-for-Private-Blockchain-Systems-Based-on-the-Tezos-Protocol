@@ -1,0 +1,19 @@
+---
+
+all:
+  hosts:
+  {% for item in existing_target_hosts %}
+  {{ item.name }}:
+      ansible_host: {{ item.accessIPv4 }}
+  {% endfor -%}
+  {% for item in target_hosts.results %}
+  {{ item.server.name }}:
+      ansible_host: {{ item.server.public_v4 }}
+  {% endfor -%}
+  vars:
+    ansible_user: ubuntu
+    vm_prefix: {{ name_of_dl }}
+    vm_flavor: 
+      flavor_name: m1.{{ host_flavor}}
+      flavor_ram: {{ flavor_result.0.ram }}
+      flavor_vcpu: {{ flavor_result.0.vcpus}}

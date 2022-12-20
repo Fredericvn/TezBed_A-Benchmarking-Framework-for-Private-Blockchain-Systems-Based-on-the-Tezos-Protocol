@@ -1,0 +1,12 @@
+- name: Clean Apt cache and autoremove packages
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Clean apt-cache
+      ansible.builtin.apt:
+        autoclean: true
+
+    - name: Clean apt-cache and remove unused dependency packages
+      ansible.builtin.apt:
+        autoremove: true

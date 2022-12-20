@@ -1,0 +1,313 @@
+---
+# Name of the clickhouse database for the benchmark
+database_name: "tezos_benchmark"
+# Name of the clickhouse user to (remote) access the database
+database_user: "tezos"
+# The secure TCP port for the TSL connection to the clickhouse database
+secure_tcp_port: 9440
+
+## Full table descriptions: table name - variable name and clickhouse datatype
+tb_protocol_constants: "name_of_chain String, \
+ts_creation_of_protocol Datetime, \
+preserved_cycles UInt16, \
+blocks_per_cycle UInt32, \
+blocks_per_commitment UInt32, \
+blocks_per_roll_snapshot UInt32, \
+blocks_per_voting_period UInt32, \
+time_between_blocks Array(String), \
+minimal_block_delay UInt32, \
+endorsers_per_block UInt16, \
+hard_gas_limit_per_operation UInt64, \
+hard_gas_limit_per_block UInt64, \
+proof_of_work_threshold Int16, \
+tokens_per_roll UInt64, \
+seed_nonce_revelation_tip UInt64, \
+origination_size UInt32, \
+block_security_deposit UInt32, \
+endorsement_security_deposit UInt32, \
+baking_reward_per_endorsement Array(String), \
+endorsement_reward Array(String), \
+hard_storage_limit_per_operation UInt32, \
+cost_per_byte UInt32, \
+quorum_min UInt32, \
+quorum_max UInt32, \
+min_proposal_quorum UInt32, \
+initial_endorsers UInt16, \
+delay_per_missing_endorsement UInt32, \
+liquidity_baking_subsidy UInt64, \
+liquidity_baking_sunset_level UInt64, \
+liquidity_baking_escape_ema_threshold UInt64"
+
+tb_vm_hardware_properties: "name_of_chain String, \
+ts_creation_of_protocol DateTime, \
+flavor_name String, \
+ram_size_mb UInt32, \
+cpu_architecture String, \
+cpu_s UInt8, \
+cpu_mhz Decimal32(2), \
+cpu_threads_per_core UInt8, \
+cpu_cores_per_socket UInt8, \
+cpu_sockets UInt8, \
+cpu_numa_nodes UInt8, \
+cpu_vendor String, \
+cpu_family UInt8, \
+cpu_model UInt8, \
+cpu_model_name String, \
+cpu_stepping UInt8, \
+cpu_bogo_mips Decimal32(2), \
+cpu_hypervisor_vendor String, \
+cpu_l1d_cache String, \
+cpu_l1i_cache String, \
+cpu_l2_cache String, \
+cpu_l3_cache String"
+
+tb_experiment_vars: "name_of_chain String, \
+ts_creation_of_protocol Datetime, \
+number_nodes_exp UInt16, \
+minimal_block_delay UInt32, \
+block_gas_limit UInt64, \
+initial_endorsers_per_block UInt16, \
+maximum_endorsers_per_block UInt16, \
+min_time_between_blocks UInt32, \
+block_delay_per_priority UInt32, \
+delay_per_missing_endorsement UInt32, \
+chain_val_latency UInt32, \
+fraction_of_bakers Decimal32(4), \
+number_of_bakers UInt16, \
+number_of_endorsers UInt16, \
+chain_val_latency_factor UInt8, \
+chain_val_sync_threshold UInt8, \
+trx_amount UInt64, \
+blocks_to_run UInt8"
+
+tb_blocks: "name_of_chain String, \
+block_level UInt32, \
+block_hash String, \
+block_timestamp Datetime, \
+block_chain_id String, \
+baker_pkh String, \
+baker_hostname String, \
+baker_priority UInt16, \
+baker_consumed_milligas UInt64, \
+number_endorsements UInt16, \
+trx_number_confirmed UInt32, \
+trx_sum_consumed_milligas UInt64, \
+trx_number_failed UInt32"
+
+tb_endorsements: "name_of_chain String, \
+block_level UInt32, \
+block_hash String, \
+endorser_pkh String, \
+endorser_hostname String, \
+endorsment_for_level UInt32, \
+endorser_slot UInt16, \
+endorser_slots Array(UInt16)"
+
+tb_operations: "name_of_chain String, \
+op_send_rate_lvl UInt8, \
+op_first UInt32, \
+op_last UInt32, \
+op_hash String, \
+op_type String, \
+sc_hostname String, \
+sc_account_pkh String, \
+ts_client_init DateTime64(3), \
+ts_node_start_preval DateTime64(3), \
+ts_block DateTime, \
+u_ts_client_init DateTime64(5), \
+u_ts_client_inject_post DateTime64(5), \
+u_ts_client_inject_complete DateTime64(5), \
+st_propagated Bool, \
+st_confirmed Bool, \
+st_error String, \
+pt_node_completed_preval Decimal32(5), \
+pt_trx_latency Decimal64(5), \
+block_hash String, \
+block_level UInt32, \
+branch_hash String"
+
+tb_system_log_cpl: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+n_processors UInt8, \
+load_avg_last_min Decimal32(2), \
+load_avg_last_5_min Decimal32(2), \
+load_avg_last_15_min Decimal32(2), \
+n_cxt_switches UInt64, \
+n_devc_interrupts UInt64"
+
+tb_system_log_cpu: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+tot_n_ct_sec UInt32, \
+n_processors UInt32, \
+cons_CPUs_sys_mode_ct UInt32, \
+cons_CPUs_user_mode_ct UInt32, \
+cons_CPUs_user_mode_ct_niced_procs UInt32, \
+cons_CPUs_idle_mode_ct UInt32, \
+cons_CPUs_wait_mode_ct UInt32, \
+cons_CPUs_irq_mode_ct UInt32, \
+cons_CPUs_softirq_mode_ct UInt32, \
+cons_CPUs_steal_mode_ct UInt32, \
+cons_CPUs_guest_mode_ct UInt32, \
+frequency_CPUs UInt32, \
+frequency_pct_CPUs UInt32, \
+instr_exec_CPUs UInt32, \
+instr_exec_cycles UInt32"
+
+tb_system_log_dsk: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+name String, \
+n_milsec_spent_IO UInt32, \
+n_reads_issued UInt32, \
+n_sect_transf_reads UInt32, \
+n_writes_issued UInt32, \
+n_sect_transf_write UInt32"
+
+tb_system_log_mem: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+page_sz_b UInt32, \
+phys_mem_sz_p UInt32, \
+free_mem_p UInt32, \
+page_cache_sz_p UInt32, \
+buf_cache_p UInt32, \
+slab_sz_p UInt32, \
+dirt_pages_cache_p UInt32, \
+recl_prt_slab_p UInt32, \
+tot_vmware_sz_bal_pages_p UInt32, \
+tot_shrd_mem_sz_p UInt32, \
+res_shrd_mem_sz_p UInt32, \
+swap_shrd_mem_sz_p UInt32, \
+huge_page_sz_b UInt32, \
+tot_huge_pages_sz_hp UInt32, \
+free_huge_pages_hp UInt32"
+
+tb_system_log_net_upper: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+layer_stack String, \
+n_pkts_recv_TCP UInt32, \
+n_pkts_transm_TCP UInt32, \
+n_pkts_recv_UDP UInt32, \
+n_pkts_transm_UDP UInt32, \
+n_pkts_recv_IP UInt32, \
+n_pkts_transm_IP UInt32, \
+n_pkts_delv_higher_lay_IP UInt32, \
+n_pkts_forwd_IP UInt32"
+
+tb_system_log_net: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+name_intf String, \
+n_pkts_recv_intf UInt64, \
+n_bytes_recv_intf UInt64, \
+n_pkts_transm_intf UInt64, \
+n_bytes_transm_intf UInt64, \
+intf_speed UInt64, \
+duplex_mode UInt8"
+
+tb_system_log_prc: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+PID UInt32, \
+name String, \
+state String, \
+tot_n_ct_sec UInt32, \
+cons_CPUs_user_mode_ct UInt32, \
+cons_CPUs_sys_mode_ct UInt32, \
+nice_value Int32, \
+prio UInt32, \
+rltime_prio UInt32, \
+sched_pol UInt32, \
+curr_CPU UInt32, \
+sleep_avg UInt32, \
+TGID UInt32, \
+is_process String"
+
+tb_system_log_prd: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+PID UInt32, \
+name String, \
+state String, \
+obsol_kern_patch_inst String, \
+std_io_stats_used String, \
+n_reads_disk UInt32, \
+cum_n_sect_read UInt32, \
+n_writes_disk UInt32, \
+cum_n_sect_writt UInt32, \
+canc_n_writt_sect UInt32, \
+TGID UInt32, \
+is_process String, \
+disk_IO_count_not_rel String"
+
+tb_system_log_prm: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+PID UInt32, \
+name String, \
+state String, \
+page_sz_b UInt32, \
+virt_mem_sz_kb UInt32, \
+res_mem_sz_kb UInt32, \
+shrd_txt_mem_sz_kb UInt32, \
+virt_mem_growth_kb Int32, \
+res_mem_growth_kb Int32, \
+n_minor_page_faults UInt32, \
+n_major_page_faults UInt32, \
+virt_lib_exec_sz_kb UInt32, \
+virt_data_sz_kb UInt32, \
+virt_stack_sz_kb UInt32, \
+swap_space_used_kb UInt32, \
+TGID UInt32, \
+is_process String, \
+prop_set_sz UInt32"
+
+tb_system_log_psi: "name_of_chain String, \
+hostname String, \
+label String, \
+datetime_u DateTime, \
+interval UInt64, \
+PSI_stat_pres String, \
+CPU_avg10 Decimal32(1), \
+CPU_avg60 Decimal32(1), \
+CPU_avg300 Decimal32(1), \
+CPU_accum_micsec_intval UInt64, \
+mem_avg10 Decimal32(1), \
+mem_avg60 Decimal32(1), \
+mem_avg300 Decimal32(1), \
+mem_accum_micsec_intval UInt64, \
+mem_full_avg10 Decimal32(1), \
+mem_full_avg60 Decimal32(1), \
+mem_full_avg300 Decimal32(1), \
+mem_full_accum_micsec_intval UInt64, \
+IO_avg10 Decimal32(1), \
+IO_avg60 Decimal32(1), \
+IO_avg300 Decimal32(1), \
+IO_accum_micsec_intval UInt64, \
+IO_full_avg10 Decimal32(1), \
+IO_full_avg60 Decimal32(1), \
+IO_full_avg300 Decimal32(1), \
+IO_full_accum_micsec_intval UInt64"
+
+...

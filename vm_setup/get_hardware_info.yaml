@@ -1,0 +1,19 @@
+- name: Fetch hardware information of target host and save to hardware_info file
+  hosts: all
+  roles:
+    - role: '../roles/project_directories'
+  tasks:
+    - name: Get CPU info on target host and copy to controller host
+      block:
+        - name: Get CPU info and store in yaml file
+          ansible.builtin.shell:
+            cmd: lscpu > cpu_info.yaml
+          register: file_output
+          changed_when: file_output.stdout_lines != ""
+
+        - name: Fetch CPU_info.yaml file from host
+          ansible.builtin.fetch:
+            src: "/home/ubuntu/cpu_info.yaml"
+            dest: "{{ experiments_dir }}/{{ vm_prefix }}_hardware_info.yaml"
+            flat: true
+      run_once: true

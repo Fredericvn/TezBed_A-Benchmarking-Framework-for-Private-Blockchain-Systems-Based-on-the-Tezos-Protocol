@@ -1,0 +1,205 @@
+- name: Create security group and add rules for ports
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+    - role: '../roles/os_security_gr'
+    - role: '../roles/clickhouse'
+    - role: '../roles/tezos'
+  vars_prompt:
+    - name: openstack_password
+      prompt: What is your password for the openstack cloud
+    - name: name_security_gr
+      prompt: What is the name of the network security group you want to create?
+    - name: descr_security_gr
+      prompt: Provide an optional description for the purpose of the security group?
+
+  tasks:
+    - name: include clouds file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/clouds.yaml"
+
+    - name: Display the entered name for security group
+      ansible.builtin.debug:
+        msg: "You entered - security group name: {{ name_security_gr }}, description: {{ descr_security_gr }} \
+        - If this is not correct, press ctrl / control + C to stop the process"
+
+    - name: Create security group
+      openstack.cloud.security_group:
+        auth:
+          auth_url: "{{ clouds.openstack.auth.auth_url }}"
+          username: "{{ clouds.openstack.auth.username }}"
+          project_id: "{{ clouds.openstack.auth.project_id }}"
+          project_name: "{{ clouds.openstack.auth.project_name }}"
+          user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+          password: "{{ openstack_password }}"
+        region_name: "{{ clouds.openstack.region_name }}"
+        interface: "{{ clouds.openstack.interface }}"
+        name: "{{ name_security_gr }}"
+        state: present
+        description: "{{ descr_security_gr }}"
+      register: security_gr_result
+      no_log: true
+
+    # - name: Add rule to security - remote_group
+    #   openstack.cloud.security_group_rule:
+    #     auth:
+    #       auth_url: "{{ clouds.openstack.auth.auth_url }}"
+    #       username: "{{ clouds.openstack.auth.username }}"
+    #       project_id: "{{ clouds.openstack.auth.project_id }}"
+    #       project_name: "{{ clouds.openstack.auth.project_name }}"
+    #       user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+    #       password: "{{ openstack_password }}"
+    #     region_name: "{{ clouds.openstack.region_name }}"
+    #     interface: "{{ clouds.openstack.interface }}"
+    #     security_group: "{{ name_security_gr }}"
+    #     protocol: "{{ item['protocol'] }}"
+    #     port_range_min: "{{ item['port_range_min'] }}"
+    #     port_range_max: "{{ item['port_range_max'] }}"
+    #     ethertype: "{{ item['ethertype'] }}"
+    #     remote_group: "{{ name_security_gr }}"
+    #     state: present
+    #   register: rule_result_all
+    #   loop:
+    #     - "{{ icmp_ip4_i }}"
+    #     - "{{ any_ip4_i }}"
+    #     - "{{ any_ip6_i }}"
+    #     - "{{ tcp_ip4_i }}"
+
+    # - name: Add rule to security group - remote_ip_prefix
+    #   openstack.cloud.security_group_rule:
+    #     auth:
+    #       auth_url: "{{ clouds.openstack.auth.auth_url }}"
+    #       username: "{{ clouds.openstack.auth.username }}"
+    #       project_id: "{{ clouds.openstack.auth.project_id }}"
+    #       project_name: "{{ clouds.openstack.auth.project_name }}"
+    #       user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+    #       password: "{{ openstack_password }}"
+    #     region_name: "{{ clouds.openstack.region_name }}"
+    #     interface: "{{ clouds.openstack.interface }}"
+    #     security_group: "{{ name_security_gr }}"
+    #     protocol: "{{ item['protocol'] }}"
+    #     port_range_min: "{{ item['port_range_min'] }}"
+    #     port_range_max: "{{ item['port_range_max'] }}"
+    #     ethertype: "{{ item['ethertype'] }}"
+    #     remote_ip_prefix: "{{ item['remote_ip_prefix'] }}"
+    #     state: present
+    #   register: rule_result_all
+    #   loop:
+    #     - "{{ icmp_ip4_p_i }}"
+    #     - "{{ icmp_ip6_p_i }}"
+    #     - "{{ tcp_ip4_p_i }}"
+    #     - "{{ tcp_ip6_p_i }}"
+
+    - name: Add rule to security - NTP Server
+      openstack.cloud.security_group_rule:
+        auth:
+          auth_url: "{{ clouds.openstack.auth.auth_url }}"
+          username: "{{ clouds.openstack.auth.username }}"
+          project_id: "{{ clouds.openstack.auth.project_id }}"
+          project_name: "{{ clouds.openstack.auth.project_name }}"
+          user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+          password: "{{ openstack_password }}"
+        region_name: "{{ clouds.openstack.region_name }}"
+        interface: "{{ clouds.openstack.interface }}"
+        security_group: "{{ name_security_gr }}"
+        protocol: "{{ item['protocol'] }}"
+        port_range_min: "{{ item['port_range_min'] }}"
+        port_range_max: "{{ item['port_range_max'] }}"
+        ethertype: "{{ item['ethertype'] }}"
+        remote_group: "{{ name_security_gr }}"
+        direction: "{{ item['direction'] }}"
+        state: present
+      register: rule_result_all
+      loop:
+        - "{{ ntp_ip4_i }}"
+        - "{{ ntp_ip4_o }}"
+        - "{{ ntp_ip6_i }}"
+        - "{{ ntp_ip6_o }}"
+      no_log: true
+
+    - name: Add rule to security - clickhouse
+      openstack.cloud.security_group_rule:
+        auth:
+          auth_url: "{{ clouds.openstack.auth.auth_url }}"
+          username: "{{ clouds.openstack.auth.username }}"
+          project_id: "{{ clouds.openstack.auth.project_id }}"
+          project_name: "{{ clouds.openstack.auth.project_name }}"
+          user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+          password: "{{ openstack_password }}"
+        region_name: "{{ clouds.openstack.region_name }}"
+        interface: "{{ clouds.openstack.interface }}"
+        security_group: "{{ name_security_gr }}"
+        protocol: "{{ item['protocol'] }}"
+        port_range_min: "{{ secure_tcp_port | default(item['port_range_min']) }}"
+        port_range_max: "{{ secure_tcp_port | default(item['port_range_max']) }}"
+        ethertype: "{{ item['ethertype'] }}"
+        remote_group: "{{ name_security_gr }}"
+        direction: "{{ item['direction'] }}"
+        state: present
+      register: rule_result_all
+      loop:
+        - "{{ clickhouse_ip4_i }}"
+        - "{{ clickhouse_ip4_o }}"
+      no_log: true
+
+    - name: Add rule to security - tezos peer to peer port
+      openstack.cloud.security_group_rule:
+        auth:
+          auth_url: "{{ clouds.openstack.auth.auth_url }}"
+          username: "{{ clouds.openstack.auth.username }}"
+          project_id: "{{ clouds.openstack.auth.project_id }}"
+          project_name: "{{ clouds.openstack.auth.project_name }}"
+          user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+          password: "{{ openstack_password }}"
+        region_name: "{{ clouds.openstack.region_name }}"
+        interface: "{{ clouds.openstack.interface }}"
+        security_group: "{{ name_security_gr }}"
+        protocol: "{{ item['protocol'] }}"
+        port_range_min: "{{ tezos_p2p_port | default(item['port_range_min']) }}"
+        port_range_max: "{{ tezos_p2p_port | default(item['port_range_max']) }}"
+        ethertype: "{{ item['ethertype'] }}"
+        remote_group: "{{ name_security_gr }}"
+        direction: "{{ item['direction'] }}"
+        state: present
+      register: rule_result_all
+      loop:
+        - "{{ tezos_peer_ip4_udp_i }}"
+        - "{{ tezos_peer_ip4_udp_o }}"
+        - "{{ tezos_peer_ip6_udp_i }}"
+        - "{{ tezos_peer_ip6_udp_o }}"
+        - "{{ tezos_peer_ip4_tcp_i }}"
+        - "{{ tezos_peer_ip4_tcp_o }}"
+        - "{{ tezos_peer_ip6_tcp_i }}"
+        - "{{ tezos_peer_ip6_tcp_o }}"
+      no_log: true
+
+    - name: Add rule to security - tezos RPC port
+      openstack.cloud.security_group_rule:
+        auth:
+          auth_url: "{{ clouds.openstack.auth.auth_url }}"
+          username: "{{ clouds.openstack.auth.username }}"
+          project_id: "{{ clouds.openstack.auth.project_id }}"
+          project_name: "{{ clouds.openstack.auth.project_name }}"
+          user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+          password: "{{ openstack_password }}"
+        region_name: "{{ clouds.openstack.region_name }}"
+        interface: "{{ clouds.openstack.interface }}"
+        security_group: "{{ name_security_gr }}"
+        protocol: "{{ item['protocol'] }}"
+        port_range_min: "{{ tezos_p2p_port | default(item['port_range_min']) }}"
+        port_range_max: "{{ tezos_p2p_port | default(item['port_range_max']) }}"
+        ethertype: "{{ item['ethertype'] }}"
+        remote_group: "{{ name_security_gr }}"
+        direction: "{{ item['direction'] }}"
+        state: present
+      register: rule_result_all
+      loop:
+        - "{{ tezos_rpc_ip4_udp_i }}"
+        - "{{ tezos_rpc_ip4_udp_o }}"
+        - "{{ tezos_rpc_ip6_udp_i }}"
+        - "{{ tezos_rpc_ip6_udp_o }}"
+        - "{{ tezos_rpc_ip4_tcp_i }}"
+        - "{{ tezos_rpc_ip4_tcp_o }}"
+        - "{{ tezos_rpc_ip6_tcp_i }}"
+        - "{{ tezos_rpc_ip6_tcp_o }}"
+      no_log: true

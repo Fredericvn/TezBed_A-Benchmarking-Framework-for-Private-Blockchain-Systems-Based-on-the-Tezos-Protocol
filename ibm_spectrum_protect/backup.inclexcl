@@ -1,0 +1,226 @@
+********************************************************************************
+*
+* backup.inclexcl.template v1.5 (c) 22.3.1996 by Andreas Ley  (u) 26.3.2019
+*
+* Template for ADSM/TSM/ISP backup.inclexcl
+*
+
+********************************************************************************
+*
+* System-Dateien
+*
+
+* TSM-Passwortfile nicht in's Backup, da hier ggf. der Encryption Key drinsteht
+exclude.dir		/etc/adsm
+
+* ADSM- und TSM-Verzeichnis nicht in's Backup, um ggf. laufende
+* Desaster-Recovery-Version nicht zu ueberschreiben
+exclude			/usr/adsm/.../*
+exclude			/opt/tivoli/tsm/.../*
+include			/.../dsm.sys
+include			/.../dsm.opt
+include			/.../backup.inclexcl
+
+* Kleine Baumschule
+exclude.dir		/usr/machine
+exclude.dir		/usr/segment
+exclude.dir		/usr/common/machine
+exclude.dir		/usr/common/segment
+
+* Tmp-Verzeichnisse
+exclude.dir		/tmp
+exclude.dir		/usr/tmp
+exclude.dir		/var/tmp
+
+* Cache-Files von Systemprogrammen
+exclude			/etc/ssh_random_seed
+exclude			/usr/local/etc/locatedb*
+exclude.dir		/var/cache
+
+* Mount tab, remote mount tab, export tab
+exclude			/etc/mtab
+
+* Werden bei jedem Booten aus /etc/rc.values generiert
+exclude			/etc/src.csh
+exclude			/etc/src.sh
+
+* Log-Dateien
+exclude			/var/adm/amd.log*
+exclude.dir		/var/adm/autoop
+exclude			/var/adm/coran.log
+exclude.dir		/var/log
+
+* Logs von ADSM bzw. TSM bzw. ISP
+exclude			/.../dsmerror.log
+exclude			/.../dsminstr.log
+exclude			/.../dsminstr.log.lock
+exclude			/.../dsmopt.lock
+exclude			/.../dsmsched.log
+exclude			/.../dsmwebcl.log
+
+* Mail log & spool
+exclude.dir		/var/exim/log
+exclude.dir		/var/exim/run
+exclude.dir		/var/exim/spool
+exclude.dir		/var/spool/exim4
+
+* Apache logs
+exclude.dir		/usr/local/etc/httpd/logs
+
+* Printer Spooler, Requests-Verzeichnis
+* (Fuer recovery wichtige Dateien muessen gesichert werden, z.B.
+* [pq]status oder subdirectories unter request/)
+exclude.dir		/var/spool/lpd
+
+* /var/run enthaelt Dateien, die bei jedem Boot geloescht werden
+* PID-Files, utmp, random seeds...
+exclude.dir		/run
+exclude.dir		/var/run
+
+* Devices
+exclude.dir		/dev
+
+* Nach /nfs werden Verzeichnisse automatisch gemountetet
+exclude.dir		/nfs
+* In /home/sys etc. liegen die automatisch gemounteten Verzeichnisse
+exclude.dir		/home/sys
+exclude.dir		/home/ws
+exclude.dir		/home/tmp
+exclude.dir		/home/work
+exclude.dir		/home/rzanw
+exclude.dir		/home/vpp
+exclude.dir		/home/rzgvm
+exclude.dir		/home/rzgvmstripe
+
+********************************************************************************
+*
+* Benutzer-Dateien
+*
+
+* Schweineliste
+exclude			/.../Diskusage
+
+* Korn Shell history files liegen in diversen tmp-Verzeichnissen
+exclude			/.../.KSH_HIST*
+
+* Typische timestamps und logs in Benutzer-Homeverzeichnissen
+exclude			/.../.msgrc
+exclude			/.../.news_time
+exclude			/.../.rnlock
+exclude			/.../.sh_history
+exclude			/.../.xsessionlog
+exclude			/.../.xsession-errors
+exclude			/.../.pine-debug?
+
+* Browser- und andere Anwendungs-Caches
+exclude			/.../.netscape/history.*
+exclude.dir		/.../.netscape-cache
+exclude.dir		/.../.netscape/cache
+exclude.dir		/.../.netscape/xover-cache
+exclude.dir		/.../.mozilla/.../Cache
+exclude.dir		/.../.mozilla/.../OfflineCache
+exclude			/.../.mozilla/.../urlclassifier*.sqlite
+exclude.dir		/.../.mozilla/.../minidumps
+exclude.dir		/.../.mozilla/.../weave/logs
+exclude.dir		/.../.mozilla-thunderbird/.../Cache
+exclude.dir		/.../Mozilla/.../Cache
+exclude.dir		/.../.mozilla/.../Cache.Trash
+exclude.dir		/.../Mozilla/.../Cache.Trash
+exclude.dir		/.../.opera/cache4
+exclude.dir		/.../Opera/.../profile/cache4
+exclude.dir		/.../.microsoft/TempInternetFiles
+exclude.dir		/.../.evolution/.../cache
+exclude.dir		/.../.kde/.../cache
+exclude.dir		/.../.kde2/.../cache
+exclude.dir		/.../.kde3/.../cache
+exclude.dir		/.../.kde4/.../cache
+exclude.dir		/.../.gnome2/epiphany/favicon_cache
+exclude.dir		/.../.MCOM-cache
+exclude.dir		/.../.mcop/trader-cache
+exclude.dir		/.../.jpi_cache
+exclude.dir		/.../.gftp/cache
+exclude.dir		/.../.xftpcache
+exclude.dir		/.../.grail/cache
+exclude.dir		/.../.Mathematica/.../Caches
+exclude.dir		/.../.adobe/Acrobat/.../Cache
+exclude.dir		/.../Adobe/Acrobat/.../Cache
+exclude.dir		/.../.adobe/Flash_Player/AssetCache
+exclude.dir		/.../Adobe/Flash Player/AssetCache
+exclude.dir		/.../.beagle/TextCache
+exclude.dir		/.../.nx/temp
+exclude.dir		/.../.nx/cache-*
+exclude.dir		/.../.nx/C-*
+exclude.dir		/.../.nx/S-*
+exclude.dir		/.../.thumbnails
+exclude.dir		/.../.cache
+
+* Inhalte diverserer Muelleimer
+exclude.dir		/.../.Trash
+exclude.dir		/.../.dt/Trash
+exclude.dir		/.../.local/share/Trash
+exclude.dir		/.../Desktop/Trash
+exclude.dir		/.../Desktop/M??lleimer
+exclude.dir		/.../RECYCLER
+
+* Abgestuerzte Programme hinterlassen Cores und aehnliches
+exclude			/.../core
+exclude			/.../DEADJOE
+
+* NFS-Relikte
+exclude			/.../.nfs*
+
+* X11 cookies
+exclude			/.../.Xauthority
+exclude			/.../.ICEauthority
+
+* SSH: Startwert fuer Zufallszahlengenerator, Agent-Steuerdateien
+exclude			/.../.ssh/random_seed
+exclude			/.../.ssh/agent-*
+
+* Bereits komprimierte Dateien von weiterer Komprimierung ausnehmen
+exclude.compression	/.../*.z
+exclude.compression	/.../*.Z
+exclude.compression	/.../*.gz
+exclude.compression	/.../*.GZ
+exclude.compression	/.../*.xz
+exclude.compression	/.../*.XZ
+exclude.compression	/.../*.bz
+exclude.compression	/.../*.BZ
+exclude.compression	/.../*.bz2
+exclude.compression	/.../*.BZ2
+exclude.compression	/.../*.7z
+exclude.compression	/.../*.7Z
+exclude.compression	/.../*.tgz
+exclude.compression	/.../*.TGZ
+exclude.compression	/.../*.txz
+exclude.compression	/.../*.TXZ
+exclude.compression	/.../*.tbz2
+exclude.compression	/.../*.TBZ2
+exclude.compression	/.../*.gif
+exclude.compression	/.../*.GIF
+exclude.compression	/.../*.jpg
+exclude.compression	/.../*.JPG
+exclude.compression	/.../*.mpg
+exclude.compression	/.../*.MPG
+exclude.compression	/.../*.wmv
+exclude.compression	/.../*.WMV
+exclude.compression	/.../*.mp3
+exclude.compression	/.../*.MP3
+exclude.compression	/.../*.mp4
+exclude.compression	/.../*.MP4
+exclude.compression	/.../*.wma
+exclude.compression	/.../*.WMA
+exclude.compression	/.../*.zip
+exclude.compression	/.../*.ZIP
+exclude.compression	/.../*.rar
+exclude.compression	/.../*.RAR
+exclude.compression	/.../*.pdf
+exclude.compression	/.../*.PDF
+exclude.compression	/.../*.cdr
+exclude.compression	/.../*.CDR
+exclude.compression	/.../*.ppt
+exclude.compression	/.../*.PPT
+exclude.compression	/.../*.pst
+exclude.compression	/.../*.PST
+exclude.compression	/.../*.rpm
+exclude.compression	/.../*.deb

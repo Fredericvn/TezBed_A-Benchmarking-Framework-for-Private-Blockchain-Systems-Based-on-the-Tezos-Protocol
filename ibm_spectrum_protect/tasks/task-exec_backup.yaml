@@ -1,0 +1,53 @@
+---
+#  Tasks to connect the controller host via vpn to KIT network and then execute the backup with the IBM Specter Protection Service
+
+- name: Start vpn and execute backup incrementally
+  block:
+    - name: Start the OpenVPN Service and connect to KIT network
+      ansible.builtin.service:
+        name: openvpn@client
+        state: restarted
+      register: vpn
+
+    - name: Pause for 15 seconds to connect the vpn
+      ansible.builtin.pause:
+        seconds: 15
+
+    - name: Recieve status
+      ansible.builtin.command:
+        cmd: systemctl status openvpn@client
+      register: status
+      changed_when: status != ""
+
+    - name: Show vpn status
+      ansible.builtin.debug:
+        msg: "{{ status.stdout }}"
+        verbosity: 1
+
+    - name: Execute the backup
+      ansible.builtin.command:
+        cmd: dsmc incr
+      register: backup_result
+      changed_when: backup_result != ""
+      ignore_errors: true
+
+    - name: Show backup result
+      ansible.builtin.debug:
+        msg: "{{ backup_result.stdout_lines }}"
+        verbosity: 0
+
+    - name: Create backup log
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/ibm_spectrum_protect/templates/backup_log_template.j2"
+        dest: "{{ experiments_dir }}/backup_log.yaml"
+        mode: 0644
+      vars:
+        backup_time: "{{ ch_system_datetime.stdout[:19] }}"
+        backup_time_u: "{{ ch_system_datetime.stdout[26:] }}"
+
+    - name: Stop the OpenVPN Service
+      ansible.builtin.service:
+        name: openvpn@client
+        state: stopped
+
+  become: true

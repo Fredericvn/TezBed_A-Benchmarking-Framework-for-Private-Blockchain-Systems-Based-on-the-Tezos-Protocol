@@ -1,0 +1,174 @@
+- name: Create a cloud data storage/volume, attach, partition, format and mount to (controller) host
+  hosts: localhost
+  roles:
+    - role: '../roles/project_directories'
+  vars_prompt:
+    - name: openstack_password
+      prompt: What is your password for the openstack cloud
+    - name: name_of_volume
+      prompt: What is the name of the volume / data storage you want to create
+    - name: size_of_volume
+      prompt: Whats the size (in GiB) your volume / data storage should have, enter integer number
+    # - name: mount_dir
+    #   prompt: Whats the directory in your controller host's home directory, where you want to mount the volume to (e.g. logs_database)
+    #   The mount dir is now defined in the directories role
+
+  tasks:
+    - name: include clouds file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/clouds.yaml"
+    - name: include cloud quota file
+      ansible.builtin.include_vars:
+        file: "{{ git_project_dir }}/openstack_config/cloud_quota.yaml"
+
+    - name: Check validity of input
+      block:
+        - name: Retrieve info about current volumes
+          openstack.cloud.volume_info:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+            details: true
+          register: volumes_info
+          no_log: true
+        - name: Set sum of volume sizes
+          ansible.builtin.set_fact:
+            sum_volume_sizes: "{{ volumes_info.volumes | json_query('sum([*].size)') }}"
+
+        - name: Set volume_exist
+          ansible.builtin.set_fact:
+            volume_exist: "{{ (volumes_info.volumes | json_query(volume_query)) }}"
+          vars:
+            volume_query: "[?name == '{{ name_of_volume }}']"
+
+        - name: Retrieve info about current instances
+          openstack.cloud.server_info:
+            auth:
+              auth_url: "{{ clouds.openstack.auth.auth_url }}"
+              username: "{{ clouds.openstack.auth.username }}"
+              project_id: "{{ clouds.openstack.auth.project_id }}"
+              project_name: "{{ clouds.openstack.auth.project_name }}"
+              user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+              password: "{{ openstack_password }}"
+            region_name: "{{ clouds.openstack.region_name }}"
+            interface: "{{ clouds.openstack.interface }}"
+          register: server_result
+          no_log: true
+
+    - name: Create new volume, attach, partition, format and mount to (controller) host
+      block:
+        - name: Create new volume and attach to controller host
+          block:
+            - name: Create a new volume / data storage
+              openstack.cloud.volume:
+                auth:
+                  auth_url: "{{ clouds.openstack.auth.auth_url }}"
+                  username: "{{ clouds.openstack.auth.username }}"
+                  project_id: "{{ clouds.openstack.auth.project_id }}"
+                  project_name: "{{ clouds.openstack.auth.project_name }}"
+                  user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+                  password: "{{ openstack_password }}"
+                region_name: "{{ clouds.openstack.region_name }}"
+                interface: "{{ clouds.openstack.interface }}"
+                state: present
+                display_name: "{{ name_of_volume }}"
+                availability_zone: nova
+                size: "{{ size_of_volume }}"
+              register: new_volume
+              no_log: true
+
+            - name: Get the IP of the controller host/localhost then lookup the host name based on IP
+              block:
+                - name: Get the IP of the controller host
+                  ansible.builtin.shell:
+                    cmd: hostname -I | awk '{print $1}'
+                  register: ch_ip
+                - name: Set the name of the controller host
+                  ansible.builtin.set_fact:
+                    name_of_host: "{{ (server_result.openstack_servers | json_query(instance_query))[0] }}"
+                  vars:
+                    instance_query: "[? accessIPv4 == '{{ ch_ip.stdout }}'].name"
+
+            - name: Attach the new volume / data storage to the controller host
+              openstack.cloud.server_volume:
+                auth:
+                  auth_url: "{{ clouds.openstack.auth.auth_url }}"
+                  username: "{{ clouds.openstack.auth.username }}"
+                  project_id: "{{ clouds.openstack.auth.project_id }}"
+                  project_name: "{{ clouds.openstack.auth.project_name }}"
+                  user_domain_name: "{{ clouds.openstack.auth.user_domain_name }}"
+                  password: "{{ openstack_password }}"
+                region_name: "{{ clouds.openstack.region_name }}"
+                interface: "{{ clouds.openstack.interface }}"
+                state: present
+                server: "{{ name_of_host }}"
+                volume: "{{ name_of_volume }}"
+              register: attached_volume
+              no_log: true
+            - name: Set device of newley attached volume
+              ansible.builtin.set_fact:
+                device: "{{ attached_volume.attachments[0].device }}"
+            - name: Show result of volume creation
+              ansible.builtin.debug:
+                msg: "The volume '{{ name_of_volume }}' with size '{{ size_of_volume }}' (GiB) has successfully been created \
+                and is attached to the host '{{ name_of_host }}' with the device path '{{ device }}'"
+
+        - name: Create partition and filesystem on volume, then mount it to the mounting point
+          block:
+            - name: Partition the data storage
+              community.general.parted:
+                device: "{{ device }}"
+                name: primary
+                label: gpt
+                number: 1
+                unit: GB
+                fs_type: ext4
+                part_start: 0%
+                part_end: 100%
+                state: present
+              register: partition_result
+            - name: Display partition result
+              ansible.builtin.debug:
+                msg: "{{ partition_result }}"
+            - name: "Create a ext4 filesystem on {{ device }}1"
+              community.general.filesystem:
+                fstype: ext4
+                dev: "{{ device }}1"
+                state: present
+            - name: Mount the volume to the mounting point '{{ mount_dir }}', which is created in the process. /etc/fstab is adapted.
+              ansible.posix.mount:
+                src: "{{ device }}1"
+                path: "{{ mount_dir }}"
+                fstype: ext4
+                state: mounted
+            - name: Show result of volume mounting
+              ansible.builtin.debug:
+                msg: "The volume '{{ name_of_volume }}' has successfully been mounted to the mounting point \
+                '{{ mount_dir }}' with the device path '{{ device }}'"
+
+            - name: Change permission of mounting point directory
+              ansible.builtin.file:
+                path: "{{ mount_dir }}"
+                recurse: true
+                state: directory
+                mode: '0777'
+          become: true
+
+      when:
+        - (cloud_quota.max_volume_GiB|int - sum_volume_sizes|int >= size_of_volume|int)
+        - (volume_exist|length == 0)
+
+    - name: Size of volume cause aborting creation of volume
+      ansible.builtin.debug:
+        msg: "Abort creation of volume - entered size of volume exceeds cloud quota"
+      when: (cloud_quota.max_volume_GiB|int < sum_volume_sizes|int + size_of_volume|int)
+    - name: Abort creation of volume - entered name of volume already exist
+      ansible.builtin.debug:
+        msg: "The entered name: - {{ name_of_volume }} - is already in use, thus the volume can't be created"
+      when: (volume_exist|length > 0 )
