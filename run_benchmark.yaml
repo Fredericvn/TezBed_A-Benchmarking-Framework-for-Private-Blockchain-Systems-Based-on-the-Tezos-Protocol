@@ -1,0 +1,97 @@
+- name: Runs the whole experiment, creates experiment variables, resets nodes and starts blockchain and sends trx
+  hosts: all
+  roles:
+    - role: './roles/project_directories'
+    - role: './roles/benchmark'
+    - role: './roles/tezos'
+    - role: './roles/clickhouse'
+    - role: './roles/system_log'
+  vars_prompt:
+    - name: passw_clickhouse_user
+      prompt: "Provide the password for the clickhouse user: '{{ database_user }}'"
+
+  vars:
+    # This boolean ensures that the funds distribution and workload is initiated asynchronously (Ansible necessity).
+    async_force: true
+
+  tasks:
+    - name: Create experiments directory, if non existant
+      ansible.builtin.file:
+        path: "{{ experiments_dir }}"
+        state: directory
+        mode: 0777
+      delegate_to: localhost
+      run_once: true
+
+    - name: Set fix vars
+      block:
+        - name: Set the flag new_baker_accounts to 'true' if the 'new_baker_accounts' tag is NOT skipped
+          ansible.builtin.set_fact:
+            new_b_accounts: true
+            new_w_accounts: true
+          tags: new_baker_accounts
+
+        - name: Set number_of_hosts and baker_account_counter to 0
+          ansible.builtin.set_fact:
+            number_of_hosts: "{{ ansible_play_hosts | length }}"
+            baker_acc_counter: 0
+
+        - name: Check existance of {{ vm_prefix }}_all_baker_accounts.json
+          ansible.builtin.stat:
+            path: "{{ experiments_dir }}/{{ vm_prefix }}_all_baker_accounts.json"
+          register: status_all_baker_accounts
+        - name: Print status and save experiment counter from file
+          block:
+            - name: Load {{ vm_prefix }}_all_baker_accounts.json
+              ansible.builtin.include_vars:
+                file: "{{ experiments_dir }}/{{ vm_prefix }}_all_baker_accounts.json"
+                name: all_baker_accounts
+            - name: Count the number of baker accounts
+              ansible.builtin.set_fact:
+                baker_acc_counter: "{{ all_baker_accounts | length }}"
+            - name: Print baker_acc_counter
+              ansible.builtin.debug:
+                msg: "Number of baker in all_baker_accounts {{ baker_acc_counter }}"
+                verbosity: 0
+          when: status_all_baker_accounts.stat.isreg is defined and status_all_baker_accounts.stat.isreg
+
+        - name: If new_b_accounts is false, the playbook will fail immediatly if there are less baker accounts as there are hosts
+          ansible.builtin.fail:
+            msg: "Don't skip the 'new_baker_accounts' TAG, \
+            there either isn't an all_baker_accounts file or there are not enough baker accounts for every host present"
+          when: not new_b_accounts and baker_acc_counter|int < number_of_hosts|int
+
+        - name: Set the minimum number of nodes per experiment as desired, if not exceed number of hosts in inventory
+          ansible.builtin.set_fact:
+            min_nodes_exp: "{{ minimum_nodes_exp | int }}"
+          when: minimum_nodes_exp | int <= number_of_hosts | int
+        - name: Set the minimum number of nodes per experiment to 4 if a number smaller than 4 was provided
+          ansible.builtin.set_fact:
+            min_nodes_exp: 4
+          when: minimum_nodes_exp | int < 4
+        - name: Set the minimum number of nodes per experiment to number of hosts in inventory, if set to 'all' or larger than host exist
+          ansible.builtin.set_fact:
+            min_nodes_exp: "{{ number_of_hosts }}"
+          when: minimum_nodes_exp | int > number_of_hosts | int or minimum_nodes_exp == "all"
+
+        - name: "display: number of hosts, minimum number of nodes per experiment and number of bakers per exp."
+          ansible.builtin.debug:
+            msg:
+              - "{{ number_of_hosts }} hosts/VMs are in this inventory."
+              - "{{ min_nodes_exp }} nodes minimum per experiment."
+              - "{{ fraction_of_bakers | float * 100 }} % of all nodes are bakers per experiment"
+            verbosity: 0
+      delegate_to: localhost
+      run_once: true
+
+    - name: Restart the vms and reset the nodes completly, if the 'new_baker_accounts' TAG is not skipped
+      include_tasks: ./tezos/network_setup/tasks/task-reset_node_compl.yaml
+      tags: new_baker_accounts
+
+    - name: Run experiment batches with one or multiple experiments within one batch
+      block:
+        - name: Run experiment batch
+          include_tasks: ./tezos/network_setup/tasks/task-run_experiment_batch.yaml
+          loop: "{{ range(1, (number_batches_to_run | int + 1), 1) }}"
+          loop_control:
+            loop_var: batch_item
