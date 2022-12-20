@@ -1,0 +1,35 @@
+---
+#  Tasks to:
+#  1. Fetch the raw log files from the hosts
+#  -- Provide vars: None --
+
+- name: Fetch the log data (.log raw format) from the hosts
+  block:
+
+    - name: Create log directories
+      ansible.builtin.file:
+        path: "{{ experiments_dir }}/{{ chain_name_item }}/{{ log_item }}"
+        state: directory
+        mode: '0777'
+      loop:
+        - endorser
+        - node
+        - baker
+        - ext_node
+      loop_control:
+        loop_var: log_item
+      delegate_to: localhost
+
+    - name: Fetch baker.log, endorser.log, node.log files from bakers
+      ansible.builtin.fetch:
+        src: "{{ log_dir }}/{{ log_item }}.log"
+        dest: "{{ experiments_dir }}/{{ chain_name_item }}/{{ log_item }}/{{ chain_name_item }}-{{ inventory_hostname }}-{{ log_item }}.log"
+        flat: true
+      when: inventory_hostname in groups['group_bakers_' + chain_name_item]
+      loop:
+        - endorser
+        - node
+        - baker
+        - ext_node
+      loop_control:
+        loop_var: log_item

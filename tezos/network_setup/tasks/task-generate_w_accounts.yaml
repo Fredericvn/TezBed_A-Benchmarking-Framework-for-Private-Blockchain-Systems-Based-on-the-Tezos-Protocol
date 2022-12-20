@@ -1,0 +1,14 @@
+---
+# Tasks to generate the worker/workload accounts
+
+# -- Provide vars: accounts_dir, workload_dir, new_accounts --
+
+- name: Run the python script 'generate_w_accounts.py' to create the desired number of worker accounts
+  ansible.builtin.script:
+    cmd: "{{ git_project_dir }}/tezos/scripts/generate_w_accounts.py {{ accounts_dir }} {{ workload_dir }} {{ new_w_accounts }} {{ inventory_hostname }}"
+    executable: python3
+  register: worker_acc_output
+- name: Print output of generate_w_accounts script
+  ansible.builtin.debug:
+    msg: "{{ worker_acc_output.stdout_lines }}"
+    verbosity: 1

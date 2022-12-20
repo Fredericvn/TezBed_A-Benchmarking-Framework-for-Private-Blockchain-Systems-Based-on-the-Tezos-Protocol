@@ -1,0 +1,31 @@
+---
+#  Tasks to:
+#  1. Run one workload for the specific workload level and check job status
+#  2. Stop the timing of the execution of the python script
+#  -- Provide vars: None --
+- name: Run one workload for the specific workload level and check job status
+  block:
+    - name: Initialize the workload for the specific workload level
+      include_tasks: ./task-init_trx_workload.yaml
+      when: inventory_hostname in groups['group_bakers_' + chain_name_item]
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+    - name: Check status of workload
+      include_tasks: ./task-check_script_status.yaml
+      vars:
+        job_name: workload_result
+      when: inventory_hostname in groups['group_bakers_' + chain_name_item ]
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+    - name: End of timing of one workload workload level
+      include_tasks: ./task-timing_execution.yaml
+      vars:
+        event: "execute rate ops level"
+      when: inventory_hostname in groups['group_bakers_' + chain_name_item ]
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item

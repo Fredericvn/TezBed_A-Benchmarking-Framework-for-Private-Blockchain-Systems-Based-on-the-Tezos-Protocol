@@ -1,0 +1,264 @@
+- name: Start of timing batch
+  block:
+    - name: Retrieve system date and time (_unix epoch)
+      ansible.builtin.command: date +%Y-%m-%dT%H:%M:%S.%5N_%s.%6N
+      register: ch_system_datetime
+      changed_when: ch_system_datetime.stdout_lines != ""
+
+    - name: Set CH system time as unix epoch
+      ansible.builtin.set_fact:
+        "ch_ts_epoch_start_batch": "{{ ch_system_datetime.stdout[26:] }}"
+  delegate_to: localhost
+  run_once: true
+
+- name: In the first batch, reset the existing nodes and blockchain data including LOGS
+  include_tasks: ./task-reset_node.yaml
+  when:
+    - batch_item == 1
+    - not new_b_accounts
+
+- name: Setup the experiment batch
+  block:
+    - name: set facts
+      block:
+        - name: Check current experiment counter and batch number, set experiment counter accordingly
+          include_tasks: ./task-check_experiment_counter.yaml
+
+        - name: Increase batch_number by 1
+          ansible.builtin.set_fact:
+            batch_number: "{{ batch_number | int + 1 }}"
+
+        - name: Set the maximum number of nodes for this batch equal to the number of hosts
+          ansible.builtin.set_fact:
+            max_nodes_exp: "{{ number_of_hosts }}"
+        - name: display maximum number of nodes for this batch equal to the number of hosts
+          ansible.builtin.debug:
+            msg: "{{ max_nodes_exp }} nodes maximum for this experiment"
+            verbosity: 0
+        - name: Set number of nodes per batch to 0
+          ansible.builtin.set_fact:
+            number_nodes_batch: 0
+
+        - name: Set number of parallel tested networks
+          ansible.builtin.set_fact:
+            number_of_networks: 1
+        - name: display number of networks
+          ansible.builtin.debug:
+            msg: "{{ number_of_networks }} network in this batch at this stage"
+            verbosity: 0
+
+        - name: Set number of available hosts to number of hosts
+          ansible.builtin.set_fact:
+            available_hosts: "{{ number_of_hosts | int }}"
+        - name: Print available hosts in the batch
+          ansible.builtin.debug:
+            msg: "{{ available_hosts }}"
+            verbosity: 1
+      delegate_to: localhost
+      run_once: true
+
+    - name: Setup experiment for each network/experiment -- NEW EFFICIENT VERSION
+      block:
+        - name: Balancing high and low numbers of nodes per experiment for even distribution
+          include_tasks: ./task-network_size_selection_new.yaml
+
+        - name: "{{ network_size[0] }} iterations - Generate variables for experiment"
+          include_tasks: ./task-setup_experiment.yaml
+          loop: "{{ range(1, network_size[0] | int + 1, 1) }}"
+          loop_control:
+            loop_var: experiment_item
+
+    - name: Save new experiment counter and batch number to {{ experiment_name }}_experiment_counter.yaml
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/tezos/network_setup/templates/experiment_counter_template.j2"
+        dest: "{{ experiments_dir }}/{{ experiment_name }}_experiment_counter.yaml"
+        mode: 0666
+      delegate_to: localhost
+      run_once: true
+
+    - name: Create and append experiment register
+      block:
+        - name: Create experiment register
+          ansible.builtin.template:
+            src: "{{ git_project_dir }}/tezos/network_setup/templates/experiment_register.j2"
+            dest: "{{ experiments_dir }}/{{ experiment_name }}_experiment_register.yaml"
+            mode: 0666
+          when: (batch_number | int == 1)
+        - name: Append experiment register
+          ansible.builtin.template:
+            src: "{{ git_project_dir }}/tezos/network_setup/templates/experiment_register_add.j2"
+            dest: "{{ experiments_dir }}/{{ experiment_name }}_experiment_register.yaml"
+            mode: 0666
+          when: (batch_number | int >= 2)
+      delegate_to: localhost
+      run_once: true
+
+    - name: Load the network register and create a list of the chain names
+      block:
+        - name: "Load network register"
+          ansible.builtin.include_vars:
+            file: "{{ experiments_dir }}/{{ experiment_name }}_network_register.yaml"
+            name: network_reg
+        - name: Create a new empty list of chain names
+          ansible.builtin.set_fact:
+            chain_name_list: []
+        - name: Extract the chain_names from the network_reg and add them to the chain_name_list
+          ansible.builtin.set_fact:
+            chain_name_list: "{{ chain_name_list + [item.value.chain_name] }}"
+          loop: "{{ query('dict', network_reg) }}"
+        - name: Print the chain name list
+          ansible.builtin.debug:
+            msg: ”chain name list {{ chain_name_list }}"
+            verbosity: 0
+      delegate_to: localhost
+      run_once: true
+
+- name: Check if the distribution of funds is finished
+  tags: funds_distribution
+  block:
+    - name: Check status of distribute_funds script
+      include_tasks: ./task-check_script_status.yaml
+      vars:
+        job_name: distribution_result
+      when: inventory_hostname in groups['group_bakers_' + chain_name_item ]
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+    - name: End of timing of distribution of funds
+      include_tasks: ./task-timing_execution.yaml
+      vars:
+        event: "distribute funds"
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+- name: Reveal accounts (public keys) in async mode
+  tags: funds_distribution
+  block:
+    - name: Reveal the worker accounts
+      include_tasks: ./task-reveal_pubkey.yaml
+      when: inventory_hostname in groups['group_bakers_' + chain_name_item]
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+    - name: Check status of reveal_pubkey script
+      include_tasks: ./task-check_script_status.yaml
+      vars:
+        job_name: reveal_result
+      when: inventory_hostname in groups['group_bakers_' + chain_name_item ]
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+    - name: End of timing of revealing pubkey
+      include_tasks: ./task-timing_execution.yaml
+      vars:
+        event: "reveal accounts"
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+
+- name: For system performance logging, start atop and save output to system_log.csv on hosts
+  ansible.builtin.command:
+    cmd: "{{ scripts_dir }}/start_atop.sh"
+  async: "{{ max_retries }}"
+  poll: 0
+  when: inventory_hostname in groups['group_all_' + chain_name_item ]
+  loop: "{{ chain_name_list }}"
+  loop_control:
+    loop_var: chain_name_item
+  tags:
+    - funds_distribution
+    - workload
+
+- name: Execute the transaction workload plan
+  tags:
+    - funds_distribution
+    - workload
+  block:
+    - name: Run one workload for the specific workload level and check job status
+      include_tasks: ./task-run_one_workload.yaml
+      loop: "{{ range(first_workload_lvl, last_workload_lvl | int + 1, 1) }}"
+      loop_control:
+        loop_var: send_rate_lvl
+
+- name: Stop system performance logging, hence kill atop
+  ansible.builtin.shell:
+    cmd: kill -USR2 "$(cat {{ log_dir | quote }}/atop_pid.txt)"
+  register: kill_result
+  changed_when: kill_result.stdout_lines != ""
+  when: inventory_hostname in groups['group_all_' + chain_name_item ]
+  loop: "{{ chain_name_list }}"
+  loop_control:
+    loop_var: chain_name_item
+  ignore_errors: true
+  tags:
+    - funds_distribution
+    - workload
+
+
+- name: Summarize and process log files then insert them into the database
+  include_tasks: ./task-process_logs.yaml
+  tags:
+    - funds_distribution
+    - workload
+    - process_logs
+
+
+# Important after the fetching of all data, kill all nodes and delete all data of every node, otherwise they will run full
+- name: Reset the existing nodes and blockchain data including LOGS!
+  include_tasks: ./task-reset_node.yaml
+  tags:
+    - funds_distribution
+    - workload
+
+
+- name: Calculate and display execution time of batch
+  block:
+    - name: Retrieve system date and time (_unix epoch)
+      ansible.builtin.command: date +%Y-%m-%dT%H:%M:%S.%5N_%s.%6N
+      register: ch_system_datetime
+      changed_when: ch_system_datetime.stdout_lines != ""
+
+    - name: Display time to execute batch
+      ansible.builtin.debug:
+        msg: "Time to execute batch ({{ batch_number }}) of {{ chain_name_list | length }} experiments \
+        {{ chain_name_list }}: {{ ch_system_datetime.stdout[26:] | int - ch_ts_epoch_start_batch | int }} seconds"
+        verbosity: 0
+  delegate_to: localhost
+  run_once: true
+
+- name: Execute backup every 24 hourse and create backup_log
+  block:
+
+    - name: Check existance of backup_log
+      ansible.builtin.stat:
+        path: "{{ experiments_dir }}/backup_log.yaml"
+      register: status_backup_log
+
+    - name: Only read backup, if existant
+      block:
+        - name: Read backup log
+          ansible.builtin.include_vars:
+            file: "{{ experiments_dir }}/backup_log.yaml"
+            name: backup_log
+
+        - name: get last backup time (unix epoch)
+          ansible.builtin.set_fact:
+            last_backup_time_u: "{{ backup_log['last_backup_time_u'] }}"
+      when: status_backup_log.stat.isreg is defined and status_backup_log.stat.isreg
+
+    - name: If a backup log is not present, set last backup time (unix epoch) to 0, thus enforce backup
+      ansible.builtin.set_fact:
+        last_backup_time_u: 0
+      when: status_backup_log.stat.isreg is not defined or not status_backup_log.stat.isreg
+
+    - name: Execute the backup, when 24 hours (86400 seconds) have passed since the last backup
+      include_tasks: "{{ git_project_dir }}/ibm_spectrum_protect/tasks/task-exec_backup.yaml"
+      when: (ch_system_datetime.stdout[26:] | int - last_backup_time_u | int ) > 86400
+
+  delegate_to: localhost
+  run_once: true

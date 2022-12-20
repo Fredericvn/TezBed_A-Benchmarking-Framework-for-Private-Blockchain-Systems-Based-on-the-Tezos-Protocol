@@ -1,0 +1,9 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+start_endorser() {
+    (tezos-endorser-011-PtHangz2 run {{ baker_account_name }} &>"{{ log_dir }}/endorser.log") &
+}
+
+start_endorser

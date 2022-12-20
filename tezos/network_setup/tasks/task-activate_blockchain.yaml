@@ -1,0 +1,20 @@
+---
+#  Tasks to activate the blockchain from genesis
+
+#  -- Provide vars: client_dir, tezos_protocol_hash --
+
+- name: Activate the blockchin protocol with specified parameters/constans via the genesis node's tezos-client
+  block:
+    - name: Activate the protocol in the genesis block with protocol hash, fitness, genesis key and the provided parameters.
+      ansible.builtin.shell:
+        cmd: "tezos-client -E http://localhost:{{ tezos_rpc_port }} -d {{ client_dir }} --block genesis activate protocol \
+        '{{ tezos_protocol_hash }}' with fitness -1 and key genesis \
+        and parameters {{ client_dir }}/parameters.json &> {{ client_dir }}/activation.log"
+      register: activation_status
+      changed_when: activation_status.stdout_lines != ""
+      ignore_errors: true
+    - name: Print activation status
+      ansible.builtin.debug:
+        msg: "The blockchain has been activated: {{ activation_status.stdout_lines }}"
+
+  when: inventory_hostname in groups['group_genesis_' + chain_name]

@@ -1,0 +1,9 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+start_baker() {
+    (tezos-baker-011-PtHangz2 run with local node "{{ node_dir}}" {{ baker_account_name }} &>"{{ log_dir }}/baker.log") &
+}
+
+start_baker

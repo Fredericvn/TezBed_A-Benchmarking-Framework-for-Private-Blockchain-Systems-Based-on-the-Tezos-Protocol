@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+start_node() {
+    node_args=("--data-dir" "{{ node_dir }}" "--config-file" "{{ node_dir }}/config.json" "--history-mode" "{{ history_mode }}" "--rpc-addr" "localhost:{{ tezos_rpc_port }}")
+    (tezos-node run "${node_args[@]}" &>"{{ log_dir }}/start.log") & echo "$!" >| "{{ log_dir }}/node_pid.txt"
+}
+
+start_node

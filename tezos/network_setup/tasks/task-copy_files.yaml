@@ -1,0 +1,149 @@
+# Tasks to create necessary directories on the host and copy files
+
+# -- Proivide vars: chain_name, client_dir, log_dir, accounts_dir, scripts_dir, node_dir, baker_account_name --
+
+
+- name: Create directories
+  block:
+    - name: Create tezos-client, tezos-node, logs, accounts and scripts directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0777'
+      loop:
+        - "{{ client_dir }}"
+        - "{{ node_dir }}"
+        - "{{ log_dir }}"
+        - "{{ accounts_dir }}"
+        - "{{ scripts_dir }}"
+        - "{{ workload_dir }}"
+
+- name: Create files
+  block:
+    - name: "Create: node.log (pretty-printed), start.log, extended node.log (JSON-Object-one-per-line format), \
+            process-id, workload_client.log, baker.log, endorser.log -files"
+      ansible.builtin.file:
+        path: "{{ log_dir }}{{ item }}"
+        state: touch
+        mode: '0777'
+      loop:
+        - "/node.log"
+        - "/start.log"
+        - "/ext_node.log"
+        - "/node_pid.txt"
+        - "/workload_client.log"
+        - "/baker.log"
+        - "/endorser.log"
+
+- name: Create scripts
+  block:
+    - name: Create bash scripts from template with given vars
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/tezos/network_setup/templates/startup_{{ item }}_script_template.j2"
+        dest: "{{ experiments_dir }}/{{ chain_name }}/configs/{{ chain_name }}_startup_{{ item }}.sh"
+        mode: '0777'
+      loop:
+        - "node"
+        - "baker"
+        - "endorser"
+
+    - name: Get system log attributes from system_log role main vars
+      ansible.builtin.set_fact:
+        sys_log_attributes: "{{ system_log_attr.keys() |  difference(['NET_upper']) | join(',') | upper }}"
+
+    - name: Create bash start_atop script from template with given vars
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/tezos/network_setup/templates/start_atop_script_template.j2"
+        dest: "{{ experiments_dir }}/{{ experiment_name }}_start_atop_.sh"
+        mode: '0777'
+  delegate_to: localhost
+
+- name: Copy files
+  block:
+    - name: Copy config file to all hosts
+      block:
+        - name: Copy config file to all hosts/nodes to the tezos-node directory
+          ansible.builtin.copy:
+            src: "{{ experiments_dir }}/{{ chain_name }}/configs/{{ chain_name }}_config.json"
+            dest: "{{ node_dir }}/config.json"
+            mode: '0777'
+          register: config_copy_status
+        - name: Print config copy status
+          ansible.builtin.debug:
+            msg: "The {{ chain_name }}_config.json was succesfully copied to {{ config_copy_status.dest }}"
+            verbosity: 1
+
+    - name: Copy parameters file to genesis node
+      block:
+        - name: Copy parameters file to genesis node to the tezos-client directory
+          ansible.builtin.copy:
+            src: "{{ experiments_dir }}/{{ chain_name }}/configs/{{ chain_name }}_parameters.json"
+            dest: "{{ client_dir }}/parameters.json"
+            mode: '0777'
+          register: parameters_copy_status
+        - name: Print parameters copy status
+          ansible.builtin.debug:
+            msg: "The {{ chain_name }}_parameters.json was succesfully copied to {{ parameters_copy_status.dest }}"
+            verbosity: 1
+      when: inventory_hostname in groups['group_genesis_' + chain_name]
+
+    - name: Copy bash startup scripts to all hosts/nodes to the scripts_dir
+      ansible.builtin.copy:
+        src: "{{ experiments_dir }}/{{ chain_name }}/configs/{{ chain_name }}_startup_{{ item }}.sh"
+        dest: "{{ scripts_dir }}/startup_{{ item }}.sh"
+        mode: '0777'
+      loop:
+        - "node"
+        - "baker"
+        - "endorser"
+      register: script_copy_status
+    - name: Print script copy status
+      ansible.builtin.debug:
+        msg: "The startup scripts were succesfully copied to {{ script_copy_status }}"
+        verbosity: 1
+
+    - name: Copy bash script start_atop to all hosts/nodes to the scripts_dir
+      ansible.builtin.copy:
+        src: "{{ experiments_dir }}/{{ experiment_name }}_start_atop_.sh"
+        dest: "{{ scripts_dir }}/start_atop.sh"
+        mode: '0777'
+      register: script_copy_status
+    - name: Print script copy status
+      ansible.builtin.debug:
+        msg: "The startup script was succesfully copied to {{ script_copy_status }}"
+        verbosity: 1
+
+    - name: Copy workload protocol
+      ansible.builtin.copy:
+        src: "{{ experiments_dir }}/{{ chain_name }}/{{ chain_name }}_workload_protocol.json"
+        dest: "{{ workload_dir }}/workload_protocol.json"
+        mode: '0777'
+
+    - name: Copy all python scripts and module files
+      ansible.builtin.copy:
+        src: "{{ git_project_dir }}/tezos/scripts/{{ item }}"
+        dest: "{{ scripts_dir }}/{{ item }}"
+        mode: '0777'
+      loop:
+        - "parse_logs.py"
+        - "parse_blockchain.py"
+        - "blockchain_operations.py"
+        - "distribute_funds.py"
+        - "reveal_pubkey.py"
+        - "file_handler.py"
+        - "operation_constants.py"
+        - "run_workload.py"
+        - "summarize_logs.py"
+        - "parse_system_logs.py"
+
+    - name: Copy system log description file to all hosts
+      ansible.builtin.copy:
+        src: "{{ git_project_dir }}/roles/system_log/vars/main.yaml"
+        dest: "{{ log_dir }}/sys_log_description.yaml"
+        mode: '0777'
+
+    - name: Copy empty operations.csv file to all hosts (otherwise if host has no workload, nothing can be inserted into database -> error)
+      ansible.builtin.copy:
+        src: "{{ git_project_dir }}/tezos/network_setup/templates/operations_template.csv"
+        dest: "{{ log_dir }}/operations.csv"
+        mode: '0777'

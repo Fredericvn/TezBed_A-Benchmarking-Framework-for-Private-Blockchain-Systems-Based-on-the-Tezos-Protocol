@@ -1,0 +1,22 @@
+---
+#  Tasks to check the job status of the python script, that was initated asynchronously. Then print the output of the python scripts
+
+#  -- Provide vars: job_name, blocks_to_finish, minimal_block_delay --
+
+- name: Check the job status of the python script, that was initated asynchronously
+  block:
+    - name: Poll job status of {{ job_name }}
+      ansible.builtin.async_status:
+        jid: "{{ lookup('vars', job_name).ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: "{{ (max_retries | int / 10) | int }}"
+      delay: 10
+      ignore_errors: true
+      # retries: "{{ blocks_to_finish | int * 20 }}"
+      # delay: "{{ (minimal_block_delay | int / 2) | int }}"
+
+    - name: Script output
+      ansible.builtin.debug:
+        msg: "{{ job_result.stdout_lines }}"
+        verbosity: 0

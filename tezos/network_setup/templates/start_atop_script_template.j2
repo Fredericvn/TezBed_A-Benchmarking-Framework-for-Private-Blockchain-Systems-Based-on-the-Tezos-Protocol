@@ -1,0 +1,3 @@
+#!/bin/bash
+
+atop -P {{ sys_log_attributes}} > "{{ log_dir }}/system_log.csv" & echo "$!" >| "{{ log_dir }}/atop_pid.txt"

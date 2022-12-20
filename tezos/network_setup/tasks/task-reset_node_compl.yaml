@@ -1,0 +1,43 @@
+---
+#  Tasks to reset all nodes by deleting the tezos node, client (including keys, if new accounts=true), log and accounts directories
+
+#  -- Provide vars: log_dir (absolute path /home/ubuntu/...) client_dir, node_dir, new_w_accounts --
+
+- name: Check existance of node_pid.txt
+  ansible.builtin.stat:
+    path: "{{ log_dir }}/node_pid.txt"
+  register: status_node_pid
+
+- name: Shutdown tezos-node
+  ansible.builtin.shell:
+    cmd: kill -15 "$(cat {{ log_dir | quote }}/node_pid.txt)"  # '<' redirection doesn't work
+  register: kill_status
+  changed_when: kill_status.stdout_lines != ""
+  ignore_errors: true
+  when:
+    - status_node_pid.stat.isreg is defined
+    - status_node_pid.stat.isreg
+    - status_node_pid.stat.blocks > 0
+
+- name: reboot the hosts and thus kill all running tezos processes
+  ansible.builtin.reboot:
+  become: true
+
+- name: Delete directories
+  block:
+    - name: Delete tezos-client, tezos-node, tezos-logs and tezos-accounts directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ node_dir }}"
+        - "{{ log_dir }}"
+        - "{{ client_dir }}"
+        - "{{ accounts_dir }}"
+
+- name: Delete system journals / logs to free up space
+  ansible.builtin.command:
+    cmd: journalctl --vacuum-files=5 --vacuum-size=50M --vacuum-time=1d
+  become: true
+  register: del_journals
+  changed_when: del_journals != ""

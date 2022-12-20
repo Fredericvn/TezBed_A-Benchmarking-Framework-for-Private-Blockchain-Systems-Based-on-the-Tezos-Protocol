@@ -1,0 +1,70 @@
+#  Tasks to initialize the nodes (import secret keys and generate node identities),
+#  startup the nodes, bootstrap the network and activate the protocol by the genesis node,
+#  finally start baking and endorsing by the bakers
+
+#  -- Provide vars: client_dir, node_dir, log_dir, (absolute path /home/ubuntu/...), accounts_dir, scripts_dir, chain_name,
+#     history_mode, tezos_protocol_hash, baker_account_name --
+
+- name: Import secret keys
+  include_tasks: ./task-import_secret_key.yaml
+  when: inventory_hostname in groups['group_all_' + chain_name]
+
+- name: Generate node identities
+  include_tasks: ./task-generate_node_identity.yaml
+  when: inventory_hostname in groups['group_all_' + chain_name]
+
+- name: Startup nodes
+  include_tasks: ./task-startup_node.yaml
+  when: inventory_hostname in groups['group_all_' + chain_name]
+
+- name: Wait to bootstrap the genesis node and other nodes and then activate the blockchain
+  block:
+    - name: Sleep for 20 seconds to bootstrap the node and continue with play
+      ansible.builtin.wait_for:
+        timeout: 20
+      run_once: true
+    - name: Activate blockchain
+      include_tasks: ./task-activate_blockchain.yaml
+  when: inventory_hostname in groups['group_genesis_' + chain_name]
+
+- name: Startup bakers
+  include_tasks: ./task-startup_baker.yaml
+  when: inventory_hostname in groups['group_bakers_' + chain_name]
+
+- name: Startup endorsers
+  include_tasks: ./task-startup_endorser.yaml
+  when: inventory_hostname in groups['group_bakers_' + chain_name]
+
+- name: verify the network runs successfully and change synchro threshold
+  block:
+    - name: Check status of network
+      ansible.builtin.command:
+        cmd: "grep -q '(level 1) was activated' {{ log_dir }}/node.log"
+      register: network_status
+      ignore_errors: true
+      when: inventory_hostname in groups['group_genesis_' + chain_name]
+
+    - name: Print status of network, if failed
+      ansible.builtin.debug:
+        msg: "The network failed to start"
+        verbosity: 0
+      when: network_status.failed
+      run_once: true
+
+    - name: Change synchronization threshold
+      ansible.builtin.command:
+        cmd: "tezos-node config update --synchronisation-threshold=2"
+      register: config_status
+      changed_when: config_status.stdout_lines != ""
+
+    - name: Print config status
+      ansible.builtin.debug:
+        msg: "config status: {{ config_status.stderr }}"
+        verbosity: 1
+
+    - name: Print status of network, if successfull
+      ansible.builtin.debug:
+        msg: "The network has been succesfully initialized and nodes have start baking"
+        verbosity: 0
+      when: not network_status.failed
+      run_once: true

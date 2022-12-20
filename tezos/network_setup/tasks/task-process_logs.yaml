@@ -1,0 +1,135 @@
+---
+#  Tasks to:
+#  1. To parse the blockchain (only genesis host) and summarize all logs and convert them to JSON/CSV files
+#  2. Check the status of parsing the blockchain and summarizing logs
+#  3. Stop the timing of the execution of the python script
+#  -- Provide vars: None --
+
+- name: ignore_errors
+  block:
+    - name: Summarize the log files by combining the csv files into one file each
+      block:
+        - name: Parse the blockchain (only genesis host) and summarize log files
+          include_tasks: ./task-summarize_logs.yaml
+          when: inventory_hostname in groups['group_bakers_' + chain_name_item ]
+          loop: "{{ chain_name_list }}"
+          loop_control:
+            loop_var: chain_name_item
+
+        - name: Check status of summarize logs for all hosts but genesis
+          include_tasks: ./task-check_script_status.yaml
+          vars:
+            job_name: log_result
+          when: inventory_hostname in groups['group_bakers_' + chain_name_item]
+          loop: "{{ chain_name_list }}"
+          loop_control:
+            loop_var: chain_name_item
+
+        - name: End of timing of parsing the blockchain and summarize logs
+          include_tasks: ./task-timing_execution.yaml
+          vars:
+            event: "Summarize and combine logs"
+          loop: "{{ chain_name_list }}"
+          loop_control:
+            loop_var: chain_name_item
+
+    - name: Stop the nodes
+      block:
+        - name: Check existance of node_pid.txt
+          ansible.builtin.stat:
+            path: "{{ log_dir }}/node_pid.txt"
+          register: status_node_pid
+
+        - name: Shutdown tezos-node
+          ansible.builtin.shell:
+            cmd: kill -15 "$(cat {{ log_dir | quote }}/node_pid.txt)"  # '<' redirection doesn't work
+          register: kill_status
+          changed_when: kill_status.stdout_lines != ""
+          ignore_errors: true
+          when:
+            - status_node_pid.stat.isreg is defined
+            - status_node_pid.stat.isreg
+            - status_node_pid.stat.blocks > 0
+
+    - name: Start of timing
+      block:
+        - name: Retrieve system date and time (_unix epoch)
+          ansible.builtin.command: date +%Y-%m-%dT%H:%M:%S.%5N_%s.%6N
+          register: ch_system_datetime
+          changed_when: ch_system_datetime.stdout_lines != ""
+
+        - name: Set CH system time as unix epoch
+          ansible.builtin.set_fact:
+            "ch_ts_epoch_start_cl": "{{ ch_system_datetime.stdout[26:] }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Fetch the log files (.log raw format) from the hosts
+      include_tasks: ./task-fetch_logs.yaml
+      loop: "{{ chain_name_list }}"
+      loop_control:
+        loop_var: chain_name_item
+
+    - name: Insert log data into clickhouse database asycn
+      block:
+        - name: Check if the clickhouse-server is started / running
+          ansible.builtin.service:
+            name: clickhouse-server
+            state: started
+          become: true
+          delegate_to: localhost
+          run_once: true
+
+        - name: Pause for 3 seconds to start the clickhouse-server
+          ansible.builtin.pause:
+            seconds: 3
+
+        - name: Insert operations and system_logs into database
+          include_tasks: "{{ git_project_dir }}/clickhouse/tasks/task-insert_data.yaml"
+          vars:
+            genesis_host: false
+            by_localhost: false
+          when:
+            - inventory_hostname in groups['group_bakers_' + chain_name_item]
+            - inventory_hostname not in groups['group_genesis_' + chain_name_item]
+          loop: "{{ chain_name_list }}"
+          loop_control:
+            loop_var: chain_name_item
+
+
+        - name: Insert blocks.csv, endorsements.csv, operations and system_logs (only genesis host) into database
+          include_tasks: "{{ git_project_dir }}/clickhouse/tasks/task-insert_data.yaml"
+          vars:
+            genesis_host: true
+            by_localhost: false
+          when: inventory_hostname in groups['group_genesis_' + chain_name_item ]
+          loop: "{{ chain_name_list }}"
+          loop_control:
+            loop_var: chain_name_item
+
+
+        - name: Insert protocol_constants, vm_hardware_properties, experiment_vars into database by CH
+          include_tasks: "{{ git_project_dir }}/clickhouse/tasks/task-insert_data.yaml"
+          vars:
+            genesis_host: false
+            by_localhost: true
+          loop: "{{ chain_name_list }}"
+          loop_control:
+            loop_var: chain_name_item
+
+    - name: Calculate and display execution time of data insertion
+      block:
+        - name: Retrieve system date and time (_unix epoch)
+          ansible.builtin.command: date +%Y-%m-%dT%H:%M:%S.%5N_%s.%6N
+          register: ch_system_datetime
+          changed_when: ch_system_datetime.stdout_lines != ""
+
+        - name: Display time to execute
+          ansible.builtin.debug:
+            msg: " Time to insert data into clickhouse: \
+            {{ ch_system_datetime.stdout[26:] | int - ch_ts_epoch_start_cl | int }} seconds"
+            verbosity: 0
+      delegate_to: localhost
+      run_once: true
+
+  ignore_errors: true

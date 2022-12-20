@@ -1,0 +1,10 @@
+---
+#  Tasks to startup the tezos-node with the provided config
+
+#  -- Provide vars:  scripts_dir, history_mode, --
+
+- name: Startup the tezos-node with the provided config on host/node
+  block:
+    - name: Run tezos-node with provided config in {{ history_mode }} mode and output the status to node.log in the tezos-logs directory
+      ansible.builtin.command:
+        cmd: nohup {{ scripts_dir }}/startup_node.sh

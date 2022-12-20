@@ -1,0 +1,60 @@
+---
+#  Tasks to run the python scripts to
+#  1. generate the genesis account
+#  2. generate the node configuration file based on the given parameters
+#  3. generate as many baker accounts as there are bakers specified and provide them with the amount of tez at the start of the network
+#  4. generate the parameters file for the activation of the blockchain constants (constants are defined in the generation of the experiment
+#     protocol and here only formated correctly to be processed by the genesis node)
+
+#  -- Provide vars: vm_prefix, chain_name, first_gr_member, last_gr_member, min_nodes_exp, identity_difficulty,
+#                   node_dir (absolute path /home/ubuntu/...), log_dir (absolute path /home/ubuntu/...), experiments_dir,
+#                   log_prettyprinted, log_level ,number_of_hosts, new_b_accounts, number_of_bakers, amount_of_tez_b, amount_of_tez_w --
+
+- name: Run the python script 'generate_config.py' to generate genesis account and node config.json
+  ansible.builtin.script:
+    cmd: "{{ git_project_dir }}/tezos/scripts/generate_config.py \
+    {{ vm_prefix }} {{ chain_name }} {{ first_gr_member }} {{ last_gr_member }} {{ min_nodes_exp }} {{ identity_difficulty }} {{ node_dir }} \
+    {{ log_dir }} {{ log_level }} {{ log_prettyprinted }} {{ experiments_dir }} {{ tezos_p2p_port }}"
+    chdir: "{{ git_project_dir }}"
+    executable: python3
+  register: config_output
+- name: Print output of generate_config script
+  ansible.builtin.debug:
+    msg: "{{ config_output.stdout_lines }}"
+    verbosity: 1
+
+- name: Run the python script 'generate_b_accounts.py' to generate baker/bootstrap accounts
+  ansible.builtin.script:
+    cmd: "{{ git_project_dir }}/tezos/scripts/generate_b_accounts.py {{ vm_prefix }} {{ chain_name }} {{ number_of_hosts }} \
+    {{ number_of_bakers }} {{ first_gr_member }} {{ last_gr_member }} {{ new_b_accounts }} {{ experiments_dir }}"
+    chdir: "{{ git_project_dir }}"
+    executable: python3
+  register: accounts_output
+- name: Print output of generate_accounts script
+  ansible.builtin.debug:
+    msg: "{{ accounts_output.stdout_lines }}"
+    verbosity: 1
+
+- name: Run the python script 'gen_workload_protocol.py' to generate the funds distribution and workload plan
+  ansible.builtin.script:
+    cmd: "{{ git_project_dir }}/tezos/scripts/gen_workload_protocol.py \
+    {{ vm_prefix }} {{ chain_name }} {{ first_gr_member }} {{ last_gr_member }} {{ amount_of_tez_b }} \
+    {{ amount_of_tez_w }} {{ workload_levels | join(',') }} {{ experiments_dir }}"
+    chdir: "{{ git_project_dir }}"
+    executable: python3
+  register: gen_workload_output
+- name: Print output of gen_workload_protocol
+  ansible.builtin.debug:
+    msg: "{{ gen_workload_output.stdout_lines }}"
+    verbosity: 0
+
+- name: Run the python script 'generate_parameters.py' to generate the blockchain parameters.json file
+  ansible.builtin.script:
+    cmd: "{{ git_project_dir }}/tezos/scripts/generate_parameters.py {{ chain_name }} {{ vm_prefix }} {{ experiments_dir }}"
+    chdir: "{{ git_project_dir }}"
+    executable: python3
+  register: parameters_output
+- name: Print output of generate_exp_protocol
+  ansible.builtin.debug:
+    msg: "{{ parameters_output.stdout_lines }}"
+    verbosity: 1

@@ -1,0 +1,71 @@
+
+                         block_size_limit  block_creation_interval  network_size  Tx_throughput  Tx_confirm_latency  workload_lvl
+block_size_limit             1.000000e+00             8.789296e-02  4.316900e-02       0.333938            0.379366 -4.235637e-17
+block_creation_interval      8.789296e-02             1.000000e+00  4.580986e-02      -0.331016            0.181769  1.937513e-16
+network_size                 4.316900e-02             4.580986e-02  1.000000e+00      -0.468726            0.432707 -1.225907e-15
+Tx_throughput                3.339384e-01            -3.310156e-01 -4.687257e-01       1.000000           -0.244064  3.022621e-01
+Tx_confirm_latency           3.793658e-01             1.817691e-01  4.327069e-01      -0.244064            1.000000  2.391414e-01
+workload_lvl                -4.235637e-17             1.937513e-16 -1.225907e-15       0.302262            0.239141  1.000000e+00
+
+[6 rows x 6 columns]
+
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:          Tx_throughput   R-squared:                       0.553
+Model:                            OLS   Adj. R-squared:                  0.553
+Method:                 Least Squares   F-statistic:                     1433.
+Date:                Mon, 19 Dec 2022   Prob (F-statistic):               0.00
+Time:                        00:20:18   Log-Likelihood:                -22337.
+No. Observations:                4630   AIC:                         4.468e+04
+Df Residuals:                    4625   BIC:                         4.472e+04
+Df Model:                           4                                         
+Covariance Type:            nonrobust                                         
+===========================================================================================
+                              coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------------------
+const                      58.4966      1.739     33.640      0.000      55.088      61.906
+block_size_limit         8.232e-06   2.11e-07     38.938      0.000    7.82e-06    8.65e-06
+block_creation_interval    -1.5875      0.046    -34.771      0.000      -1.677      -1.498
+network_size               -0.5850      0.012    -47.704      0.000      -0.609      -0.561
+workload_lvl                0.4296      0.014     30.762      0.000       0.402       0.457
+==============================================================================
+Omnibus:                     1784.290   Durbin-Watson:                   1.658
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):            13245.094
+Skew:                           1.652   Prob(JB):                         0.00
+Kurtosis:                      10.599   Cond. No.                     1.59e+07
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 1.59e+07. This might indicate that there are
+strong multicollinearity or other numerical problems.
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:     Tx_confirm_latency   R-squared:                       0.392
+Model:                            OLS   Adj. R-squared:                  0.392
+Method:                 Least Squares   F-statistic:                     745.7
+Date:                Mon, 19 Dec 2022   Prob (F-statistic):               0.00
+Time:                        00:20:18   Log-Likelihood:                -20188.
+No. Observations:                4630   AIC:                         4.039e+04
+Df Residuals:                    4625   BIC:                         4.042e+04
+Df Model:                           4                                         
+Covariance Type:            nonrobust                                         
+===========================================================================================
+                              coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------------------
+const                     -28.9635      1.093    -26.498      0.000     -31.106     -26.821
+block_size_limit         4.038e-06   1.33e-07     30.385      0.000    3.78e-06     4.3e-06
+block_creation_interval     0.3292      0.029     11.472      0.000       0.273       0.386
+network_size                0.2762      0.008     35.830      0.000       0.261       0.291
+workload_lvl                0.1831      0.009     20.858      0.000       0.166       0.200
+==============================================================================
+Omnibus:                     2890.164   Durbin-Watson:                   0.994
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):            38621.708
+Skew:                           2.789   Prob(JB):                         0.00
+Kurtosis:                      16.003   Cond. No.                     1.59e+07
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 1.59e+07. This might indicate that there are
+strong multicollinearity or other numerical problems.

@@ -1,0 +1,118 @@
+- name: generate experiment variables, parameters, configs, accounts
+  block:
+    - name: Increase experiment counter by 1
+      ansible.builtin.set_fact:
+        experiment_counter: "{{ experiment_counter | int + 1 }}"
+    - name: Set the chain name based on the experiment name and the experiment counter
+      ansible.builtin.set_fact:
+        chain_name: "{{ experiment_name }}_{{ experiment_counter }}"
+    - name: display the chain name
+      ansible.builtin.debug:
+        msg: "{{ chain_name }}"
+        verbosity: 0
+
+    - name: Generate experiment protocol
+      block:
+
+        - name: Run the python script 'generate_exp_protocol.py' to generate the experiment protocol with random constants
+          ansible.builtin.script:
+            cmd: "{{ git_project_dir }}/tezos/scripts/generate_exp_protocol.py {{ chain_name }} {{ network_size[1][experiment_item | int - 1] | int }} \
+            {{ network_size[1][experiment_item | int - 1] | int }} {{ vm_prefix }} {{ experiments_dir }}"
+            chdir: "{{ git_project_dir }}"
+            executable: python3
+          register: random_gen_output
+          #  Side note: If the desired number of bakers exceed the number of nodes in the experiment it will be set to it.
+
+        - name: Print output of generate_exp_protocol script
+          ansible.builtin.debug:
+            msg: "{{ random_gen_output.stdout_lines }}"
+            verbosity: 1
+
+        - name: "Load experiment protocol file and save to var"
+          ansible.builtin.include_vars:
+            file: "{{ experiments_dir }}/{{ chain_name }}/{{ chain_name }}_experiment_protocol.json"
+            name: experiment_protocol
+        - name: "Set the number of nodes for experiment {{ chain_name }} in batch {{ batch_number }}"
+          ansible.builtin.set_fact:
+            number_nodes_exp: "{{ experiment_protocol['experiment_protocol']['random_variables']['number_nodes_exp'] }}"
+        - name: Print number of nodes for experiment {{ chain_name }}
+          ansible.builtin.debug:
+            msg: "{{ number_nodes_exp }}"
+            verbosity: 0
+        - name: "Set the number of bakers for experiment {{ chain_name }} in batch {{ batch_number }}"
+          ansible.builtin.set_fact:
+            number_of_bakers: "{{ experiment_protocol['experiment_protocol']['non-random_variables']['number_of_bakers'] }}"
+        - name: Print number of bakers for experiment {{ chain_name }}
+          ansible.builtin.debug:
+            msg: "{{ number_of_bakers }}"
+            verbosity: 0
+        - name: "Set minimal_block_delay"
+          ansible.builtin.set_fact:
+            minimal_block_delay: "{{ experiment_protocol['experiment_protocol']['protocol_constants']['minimal_block_delay'] }}"
+
+    - name: Create network register
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/tezos/network_setup/templates/network_register.j2"
+        dest: "{{ experiments_dir }}/{{ experiment_name }}_network_register.yaml"
+        mode: 0666
+      when: (number_of_networks | int == 1)
+    - name: Append network register
+      ansible.builtin.template:
+        src: "{{ git_project_dir }}/tezos/network_setup/templates/network_register_add.j2"
+        dest: "{{ experiments_dir }}/{{ experiment_name }}_network_register.yaml"
+        mode: 0666
+      when: (number_of_networks | int >= 2)
+
+    - name: Add hosts to temporary inventory groups
+      include_tasks: ./task-add_hosts_tmp_inventory_gr.yaml
+
+    - name: Generate config.json, genesis account, baker accounts, parameters.json and workload protocol
+      include_tasks: ./task-gen_configs_acc_workload.yaml
+
+    - name: "Load and set workload_protocol related vars"
+      block:
+        - name: "Load workload protocol"
+          ansible.builtin.include_vars:
+            file: "{{ experiments_dir }}/{{ chain_name }}/{{ chain_name }}_workload_protocol.json"
+            name: workload_protocol
+        - name: "Set blocks_to_finish"
+          ansible.builtin.set_fact:
+            blocks_to_finish: "{{ workload_protocol['funds_distribution']['blocks_to_finish'] }}"
+
+    - name: Set number of nodes in batch
+      ansible.builtin.set_fact:
+        number_nodes_batch: "{{ number_nodes_batch | int + number_nodes_exp | int }}"
+    - name: Print number of nodes in batch
+      ansible.builtin.debug:
+        msg: "{{ number_nodes_batch }}"
+        verbosity: 0
+
+  delegate_to: localhost
+  run_once: true
+
+- name: Increase the network by 1 and start the network if looped
+  block:
+    - name: Increase the number of networks by 1
+      ansible.builtin.set_fact:
+        number_of_networks: "{{ number_of_networks | int + 1 }}"
+    - name: Print number of networks in this batch
+      ansible.builtin.debug:
+        msg: "{{ number_of_networks }}"
+        verbosity: 0
+  delegate_to: localhost
+  run_once: true
+
+- name: Copy files and scripts to hosts, create worker accounts and finally initilize the new network and blockchain
+  block:
+    - name: Create all necessary directories on the hosts and copy all relevant files (accounts, scripts) to the hosts
+      include_tasks: ./task-copy_files.yaml
+    - name: Creates and stores worker accounts on the hosts
+      include_tasks: ./task-generate_w_accounts.yaml
+    - name: Initilize the node and blockchain
+      include_tasks: ./task-init_node_and_blockchain.yaml
+  when: inventory_hostname in groups['group_all_' + chain_name]
+
+- name: Distribute funds from the baker accounts to the worker accounts
+  include_tasks: ./task-funds_distribution.yaml
+  when: inventory_hostname in groups['group_bakers_' + chain_name]
+  tags: funds_distribution

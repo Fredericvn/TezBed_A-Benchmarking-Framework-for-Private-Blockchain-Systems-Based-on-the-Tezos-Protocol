@@ -1,0 +1,61 @@
+- name: Check current experiment counter and batch number, set experiment counter accordingly
+  block:
+    - name: Check existance of {{ experiment_name }}_experiment_counter
+      ansible.builtin.stat:
+        path: "{{ experiments_dir }}/{{ experiment_name }}_experiment_counter.yaml"
+      register: status_exp_counter
+    - name: Print status and save experiment counter from file
+      block:
+        - name: Print status_exp_counter
+          ansible.builtin.debug:
+            msg: "{{ experiment_name }}_experiment_counter exists"
+            verbosity: 1
+        - name: Load {{ experiment_name }}_experiment_counter file
+          ansible.builtin.include_vars:
+            file: "{{ experiments_dir }}/{{ experiment_name }}_experiment_counter.yaml"
+            name: exp_counter_file
+        - name: Set experiment counter to value from file
+          ansible.builtin.set_fact:
+            experiment_counter: "{{ exp_counter_file['experiment_counter'] | int }}"
+        - name: Set batch number to value from file
+          ansible.builtin.set_fact:
+            batch_number: "{{ exp_counter_file['batch_number'] | int }}"
+        - name: Print experiment counter
+          ansible.builtin.debug:
+            msg: "{{ experiment_counter }}"
+            verbosity: 1
+        - name: Set the chain name based on the experiment name and the experiment counter
+          ansible.builtin.set_fact:
+            chain_name: "{{ experiment_name }}_{{ experiment_counter }}"
+        - name: display the chain name
+          ansible.builtin.debug:
+            msg: "{{ chain_name }}"
+            verbosity: 0
+        - name: Print batch number
+          ansible.builtin.debug:
+            msg: "{{ batch_number }}"
+            verbosity: 0
+      when: status_exp_counter.stat.isreg is defined and status_exp_counter.stat.isreg
+
+    - name: No experiment counter file -> start new counter at 1 and create experiment_counter file
+      block:
+        - name: Print status_exp_counter
+          ansible.builtin.debug:
+            msg: "No experiment counter file, hence the counter will be reset to 0"
+            verbosity: 1
+        - name: Set experiment counter to 0
+          ansible.builtin.set_fact:
+            experiment_counter: 0
+        - name: Set batch number to 0
+          ansible.builtin.set_fact:
+            batch_number: 0
+        - name: Print experiment counter
+          ansible.builtin.debug:
+            msg: "{{ experiment_counter }}"
+            verbosity: 0
+        - name: create {{ experiment_name }}_experiment_counter.yaml
+          ansible.builtin.template:
+            src: "{{ git_project_dir }}/tezos/network_setup/templates/experiment_counter_template.j2"
+            dest: "{{ experiments_dir }}/{{ experiment_name }}_experiment_counter.yaml"
+            mode: 0666
+      when: status_exp_counter.stat.isreg is not defined

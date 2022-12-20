@@ -1,0 +1,36 @@
+---
+#  Tasks to:
+#  1. Run the python script: "run_workload" to send number of transactions per second between worker accounts according to the workload plan
+#  2. Time the total execution of the python script on all nodes.
+#  -- Provide vars: minimal_block_delay, scripts_dir, client_dir, log_dir, accounts_dir, workload_dir, trx_amount, trx_bulk,
+#  send_rate_lvl, blocks_to_run, async_force --
+
+- name: Initialize transaction workload
+  block:
+    - name: Start timing
+      block:
+        - name: Retrieve system date and time (_unix epoch)
+          ansible.builtin.command: date +%Y-%m-%dT%H:%M:%S.%5N_%s.%6N
+          register: ch_system_datetime
+          changed_when: ch_system_datetime.stdout_lines != ""
+
+        - name: Set CH system time as unix epoch
+          ansible.builtin.set_fact:
+            "ch_ts_epoch_start_{{ chain_name_item }}": "{{ ch_system_datetime.stdout[26:] }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Calculate the global start time for the workload on all nodes synced with the block timestamps
+      include_tasks: ./task-calc_start_time.yaml
+      when: inventory_hostname in groups['group_genesis_' + chain_name_item]
+
+    - name: Run the python script 'run_workload.py' to send the desired amount of transaction between accounts
+      ansible.builtin.command:
+        cmd: "python3 {{ scripts_dir }}/run_workload.py {{ client_dir }} {{ log_dir }} {{ accounts_dir }} {{ workload_dir }} {{ inventory_hostname }} \
+        {{ trx_amount }} {{ trx_bulk_size }} {{ lookup('vars', 'start_time_' + chain_name_item) }} {{ send_rate_lvl }} \
+        {{ send_rate_lvl }} {{ groups['group_genesis_' + chain_name_item][0] }} {{ tezos_rpc_port }} {{ chain_name_item }} {{ prepare_ops }}"
+      when: async_force
+      async: "{{ max_retries }}"
+      poll: 0
+      register: workload_result
+      ignore_errors: true

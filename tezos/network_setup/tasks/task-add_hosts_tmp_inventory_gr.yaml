@@ -1,0 +1,64 @@
+---
+#  Tasks to add hosts of the playbook to temporary inventory groups to address them seperatly as desired.
+#  1. Calculate the host numerator for the first and last group member based on the network counter and the number of nodes in the experiment.
+#  2. Assign all hosts from first to last group member to the group_all of this experiment to be able to exclusivly address these hosts in other tasks
+#  3. Assign always the first member of the group to a solo genesis group to be addressed in all genesis related tasks
+#  4. Assign the desired number of bakers to this group starting with the first member (which is also the genesis node)
+#     to address the bakers for all baking related tasks
+
+#  -- Provide vars: first_gr_member, last_gr_member, number_of_networks, number_nodes_exp, vm_prefix, chain_name, number_of_bakers --
+
+- name: Set first group member (host) of network/experiment to host_1  |  for network 1
+  ansible.builtin.set_fact:
+    first_gr_member: 1
+  when: (number_of_networks | int == 1)
+
+- name: Set last group member (host) of network/experiment to (host_1 + number of nodes for experiment -1)  |  for network 1
+  ansible.builtin.set_fact:
+    last_gr_member: "{{ first_gr_member | int + number_nodes_exp | int - 1 }}"
+  when: (number_of_networks | int == 1)
+
+- name: Set first group member (host) of network/experiment as (last group member of the prior group +1)  |  for network >1
+  ansible.builtin.set_fact:
+    first_gr_member: "{{ last_gr_member | int + 1 }}"
+  when: (number_of_networks | int >= 2)
+
+- name: Set last group member (host) of network/experiment to (first group member + number of nodes for experiment -1)  |  for network >1
+  ansible.builtin.set_fact:
+    last_gr_member: "{{ first_gr_member | int + number_nodes_exp | int - 1 }}"
+  when: (number_of_networks | int >= 2)
+
+- name: Print first group member of {{ chain_name }}
+  ansible.builtin.debug:
+    msg: "{{ first_gr_member }}"
+    verbosity: 1
+- name: Print last group member of {{ chain_name }}
+  ansible.builtin.debug:
+    msg: "{{ last_gr_member }}"
+    verbosity: 1
+
+#  Assign all hosts from first to last group member to the group_all of this experiment to be able to exclusivly address these hosts in other tasks
+- name: Add as many hosts to the group_all as there are nodes in the experiment
+  ansible.builtin.add_host:
+    hostname: "{{ vm_prefix }}_{{ item }}"
+    groups: "group_all_{{ chain_name }}"
+  loop: "{{ range(first_gr_member | int, (last_gr_member | int + 1), 1) }}"
+
+# Assign always the first member of the group to a solo genesis group to be addressed in all genesis related tasks
+- name: Add the first host of network to the genesis group
+  ansible.builtin.add_host:
+    hostname: "{{ vm_prefix }}_{{ first_gr_member }}"
+    groups: "group_genesis_{{ chain_name }}"
+
+# Assign the desired number of bakers to this group starting with the first member (which is also the genesis node)
+# to address the bakers for all baking related tasks
+- name: Add desired hosts to the baker group
+  ansible.builtin.add_host:
+    hostname: "{{ vm_prefix }}_{{ item }}"
+    groups: "group_bakers_{{ chain_name }}"
+  loop: "{{ range(first_gr_member | int, (first_gr_member | int + number_of_bakers | int), 1) }}"
+
+- name: Print group_all_{{ chain_name }}
+  ansible.builtin.debug:
+    msg: "{{ groups }}"
+    verbosity: 1

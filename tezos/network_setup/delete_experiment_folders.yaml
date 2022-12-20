@@ -1,0 +1,55 @@
+- name: Delete all folders and files in experiments, configs and logs
+  hosts: localhost
+  roles:
+    - role: '../../roles/project_directories'
+  vars_prompt:
+    - name: experiment_name
+      prompt: "Which experiment (name) do you want to delete? \
+      WARNING: All folders and files of the experiment incl. exp counter, logs, protocoll, config, parameters and accounts will be deleted"
+    - name: delete_baker_acc
+      prompt: "Do you want to delete the all_baker_accounts file, type 'yes' or press enter to skip?"
+    - name: vm_prefix
+      prompt: "To delete the baker_accounts, provide the vm name/ vm_prefix, otherwise just press enter to skip?"
+  tasks:
+    - name: Check if vm_prefix was provided, if delete baker accounts is desired
+      ansible.builtin.fail:
+        msg: "If you want to delete the baker accounts, you have to provide a vm_prefix (e.g. : tezos)"
+      when:
+        - delete_baker_acc == "yes" or "'yes'"
+        - delete_baker_acc|length > 0
+        - vm_prefix|length == 0
+
+    - name: delete experiment counter, network register, experiment register
+      ansible.builtin.file:
+        path: "{{ experiments_dir }}/{{ experiment_name }}_{{ item }}.yaml"
+        state: absent
+      loop:
+        - "experiment_counter"
+        - "network_register"
+        - "experiment_register"
+
+    - name: delete all_baker_accounts
+      ansible.builtin.file:
+        path: "{{ experiments_dir }}/{{ vm_prefix }}_all_baker_accounts.json"
+        state: absent
+      when:
+        - delete_baker_acc == "yes" or "'yes'"
+        - vm_prefix|length > 0
+
+    - name: delete experiment protocoll, configs and accounts
+      block:
+        - name: Analyzing the directories to delete
+          ansible.builtin.find:
+            paths: "{{ experiments_dir }}/"
+            patterns: "{{ experiment_name }}_*"
+            use_regex: true
+            file_type: directory
+          register: folders_to_delete
+        - name: Displaying the result...
+          ansible.builtin.debug:
+            msg: "{{ folders_to_delete }}"
+        - name: Deleting the directories
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ folders_to_delete.files }}"

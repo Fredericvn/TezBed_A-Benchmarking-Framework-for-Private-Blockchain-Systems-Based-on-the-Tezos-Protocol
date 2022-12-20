@@ -1,0 +1,10 @@
+---
+# Tasks to startup the tezos-baker-011-PtHangz2
+
+# -- Proivide vars: scripts_dir --
+
+- name: Startup the tezos-node with the provided config on all baking hosts/nodes
+  block:
+    - name: Run tezos-baker-011-PtHangz2 with provided baking account and output the status to baker.log in the tezos-logs directory
+      ansible.builtin.command:
+        cmd: nohup {{ scripts_dir }}/startup_baker.sh

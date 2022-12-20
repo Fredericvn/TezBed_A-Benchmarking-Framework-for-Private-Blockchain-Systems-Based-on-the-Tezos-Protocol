@@ -1,0 +1,13 @@
+---
+#  Tasks to generate new node identity on all hosts and copy config to all hosts and parameters file to genesis host
+
+#  -- Provide vars: node_dir
+
+- name: Generate new node identity on all hosts/nodes
+  block:
+    - name: Generate new node identity (takes a little while)
+      ansible.builtin.command:
+        cmd: tezos-node identity generate {{ identity_difficulty }} --data-dir {{ node_dir }}
+      register: node_identity
+      changed_when: node_identity.stdout_lines != ""
+  ignore_errors: true

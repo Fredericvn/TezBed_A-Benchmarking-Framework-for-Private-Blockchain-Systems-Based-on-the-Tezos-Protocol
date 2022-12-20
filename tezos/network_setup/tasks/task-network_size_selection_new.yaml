@@ -1,0 +1,68 @@
+- name: Balancing high and low numbers of nodes per experiment for even distribution
+  block:
+    - name: Generate list of items with frequency correspondent to its probability and choose one item randomly
+      block:
+        - name: Create empty list
+          ansible.builtin.set_fact:
+            choice_list: []
+
+        - name: Append all numbers =< (max_nodes_exp - min_nodes_exp) ONE time
+          ansible.builtin.set_fact:
+            choice_list: "{{ choice_list + [number_item] }}"
+          loop: "{{ range(min_nodes_exp | int, (max_nodes_exp | int - min_nodes_exp | int + 1), 1) }}"
+          loop_control:
+            loop_var: number_item
+          when: min_nodes_exp | int <= (max_nodes_exp | int - min_nodes_exp | int)
+
+        - name: Append all numbers > (max_nodes_exp - min_nodes_exp) TWO times
+          ansible.builtin.set_fact:
+            choice_list: "{{ choice_list + [number_item, number_item] }}"
+          loop: "{{ range((max_nodes_exp | int - min_nodes_exp | int + 1), max_nodes_exp | int + 1, 1) }}"
+          loop_control:
+            loop_var: number_item
+          when: min_nodes_exp | int <= (max_nodes_exp | int - min_nodes_exp | int)
+
+        - name: Append all numbers if min_nodes_exp > (max_nodes_exp - min_nodes_exp) ONE time
+          ansible.builtin.set_fact:
+            choice_list: "{{ choice_list + [number_item] }}"
+          loop: "{{ range(min_nodes_exp | int, max_nodes_exp | int + 1, 1) }}"
+          loop_control:
+            loop_var: number_item
+          when: min_nodes_exp | int > (max_nodes_exp | int - min_nodes_exp | int)
+
+        - name: Print choice list
+          ansible.builtin.debug:
+            msg: "list: {{ choice_list }}"
+            verbosity: 1
+
+        - name: number of nodes in network 1 by random choice of list elements
+          ansible.builtin.set_fact:
+            nodes_exp_1: "{{ choice_list | random }}"
+
+    - name: Create network_size array with number of parallel networks, nodes_exp_1 and optional counterpart nodes_exp_2
+      block:
+        - name: One parallel network (index 0) for nodes_exp_1 > (max_nodes_exp - min_nodes_exp), nodes_exp_1 (index 1.0)
+          ansible.builtin.set_fact:
+            network_size:
+              - 1
+              - "{{ [nodes_exp_1 | int] }}"
+          when: nodes_exp_1 | int > (max_nodes_exp | int - min_nodes_exp | int)
+
+        - name: Two parallel networks (index 0) for nodes_exp_1 <= (max_nodes_exp - min_nodes_exp) , nodes_exp_1 (index 1.0), nodes_exp_2 (index 1.1)
+          ansible.builtin.set_fact:
+            network_size:
+              - 2
+              - "{{ [nodes_exp_1 | int, (max_nodes_exp | int - nodes_exp_1 | int)] }}"
+          when: nodes_exp_1 | int <= (max_nodes_exp | int - min_nodes_exp | int)
+
+    - name: Print entered parameter
+      ansible.builtin.debug:
+        msg: "Min: {{ min_nodes_exp }}, Max: {{ max_nodes_exp }}"
+        verbosity: 1
+    - name: Print network sizes
+      ansible.builtin.debug:
+        msg: "Network sizes [number networks, [nodes_exp_1, nodes_exp_2]]: {{ network_size }}"
+        verbosity: 1
+
+  delegate_to: localhost
+  run_once: true

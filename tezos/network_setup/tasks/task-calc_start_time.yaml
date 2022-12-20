@@ -1,0 +1,74 @@
+---
+#  Tasks to:
+#  1. Get the timestamp of the current head block from the genesis node
+#  2. Calculate the global block synced start time for the workload based on the buffer_time to reach every node,
+#     the minimal block delay and the current system time of the CH
+#  -- Provide vars: buffer_time, chain_name_item  --
+
+- name: Get head block timestamp from genesis node
+  ansible.builtin.command:
+    cmd: tezos-client get timestamp -s
+  register: head_ts
+  changed_when: head_ts != ""
+
+- name: Get system time and calculate start time based on buffer time and head block timestamp
+  block:
+
+    - name: "Load workload protocol"
+      ansible.builtin.include_vars:
+        file: "{{ experiments_dir }}/{{ chain_name_item }}/{{ chain_name_item }}_workload_protocol.json"
+        name: workload_protocol_i
+
+    - name: Calculate the additional buffer time to prepare (create and sign) the operation at the hosts
+      ansible.builtin.set_fact:
+        buffer_time_i: "{{ buffer_time | int \
+        + ((workload_protocol_i['blockchain_properties']['block_gas_limit'] | int * ((workload_levels[send_rate_lvl] | int) / 100) * blocks_to_run | int) \
+        / (workload_protocol_i['blockchain_properties']['OPS_GAS_LIMIT'] | int \
+        * (groups['group_bakers_' + chain_name_item] | length) | int * 100)) | round(0,'ceil') }}"
+
+    - name: Print total buffer time
+      ansible.builtin.debug:
+        msg: "total buffer time: {{ buffer_time_i }}"
+        verbosity: 0
+
+    - name: Set minimal block delay
+      ansible.builtin.set_fact:
+        minimal_block_delay_i: "{{ workload_protocol_i['blockchain_properties']['minimal_block_delay'] }}"
+
+    - name: Retrieve system date and time (_unix epoch)
+      ansible.builtin.command: date +%Y-%m-%dT%H:%M:%S.%5N_%s.%6N
+      register: ch_system_datetime
+      changed_when: ch_system_datetime.stdout_lines != ""
+
+    - name: Time period between CH system time and the next block
+      ansible.builtin.set_fact:
+        time_till_next_block: "{{ head_ts | int + minimal_block_delay_i | int - ch_system_datetime.stdout[26:] | int }}"
+
+    - name: Display head_ts
+      ansible.builtin.debug:
+        msg: "{{ head_ts.stdout }}"
+        verbosity: 1
+
+    - name: Calculate the start_time 1
+      ansible.builtin.set_fact:
+        "start_time_{{ chain_name_item }}": "{{ ((buffer_time_i | int / minimal_block_delay_i | int) | round(0,'ceil') + 1) \
+        | int * minimal_block_delay_i | int + head_ts.stdout | int }}"
+      when: time_till_next_block | int < buffer_time_i | int and buffer_time_i | int > minimal_block_delay_i | int
+
+    - name: Calculate the start_time 2
+      ansible.builtin.set_fact:
+        "start_time_{{ chain_name_item }}": "{{ minimal_block_delay_i | int * 2 + head_ts.stdout | int }}"
+      when: time_till_next_block | int <= buffer_time_i | int and buffer_time_i | int <= minimal_block_delay_i | int
+
+    - name: Calculate the start_time 3
+      ansible.builtin.set_fact:
+        "start_time_{{ chain_name_item }}": "{{ minimal_block_delay_i | int + head_ts.stdout | int }}"
+      when: time_till_next_block | int > buffer_time_i | int and time_till_next_block | int <= minimal_block_delay_i | int
+
+    - name: Display start_time
+      ansible.builtin.debug:
+        msg: "start time: {{ lookup('vars', 'start_time_' + chain_name_item) }}"
+        verbosity: 1
+  delegate_to: localhost
+  run_once: true
+...

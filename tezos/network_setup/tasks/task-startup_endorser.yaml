@@ -1,0 +1,10 @@
+---
+#  Tasks to startup the tezos-endorser-011-PtHangz2
+
+# -- Provide vars: scripts_dir --
+
+- name: Startup the tezos-node with the provided config on all baking hosts/nodes
+  block:
+    - name: Run tezos-endorser-011-PtHangz2 with provided baking account and output the status to endorser.log in the tezos-logs directory
+      ansible.builtin.command:
+        cmd: nohup {{ scripts_dir }}/startup_endorser.sh

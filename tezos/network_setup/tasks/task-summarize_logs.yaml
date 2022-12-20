@@ -1,0 +1,28 @@
+---
+#  Tasks to:
+#  1. Run the python script: "summarize_logs" to parse the blockchain (only genesis host) and summarize all logs and convert them to JSON files
+#  2. Start the timing of the total execution of the python script on all nodes.
+#  -- Provide vars: chain_name, scripts_dir, client_dir, log_dir, workload_dir, last_workload_lvl: int, genesis_host: bool, minimal_block_delay  --
+
+- name: Start of timing
+  block:
+    - name: Retrieve system date and time (_unix epoch)
+      ansible.builtin.command: date +%Y-%m-%dT%H:%M:%S.%5N_%s.%6N
+      register: ch_system_datetime
+      changed_when: ch_system_datetime.stdout_lines != ""
+
+    - name: Set CH system time as unix epoch
+      ansible.builtin.set_fact:
+        "ch_ts_epoch_start_{{ chain_name_item }}": "{{ ch_system_datetime.stdout[26:] }}"
+  delegate_to: localhost
+  run_once: true
+
+
+- name: "Parse system logs and combine logs (csv files) of all workload levels of blocks, endorsements (only genesis host) and operations"
+  ansible.builtin.command:
+    cmd: "python3 {{ scripts_dir }}/summarize_logs.py {{ log_dir }} {{ workload_dir }} {{ inventory_hostname }} \
+    {{ chain_name_item }} {{ last_workload_lvl }} {{ groups['group_genesis_' + chain_name_item][0] }} {{ tezos_rpc_port }}"
+  when: async_force
+  async: "{{ max_retries }}"
+  poll: 0
+  register: log_result

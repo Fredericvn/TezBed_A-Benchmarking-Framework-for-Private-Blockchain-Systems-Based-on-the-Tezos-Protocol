@@ -1,0 +1,46 @@
+- name: Reset all nodes by deleting the tezos node and client directories
+  hosts: all
+  roles:
+    - role: '../../roles/project_directories'
+  vars:
+    chain_name: "test"
+    baker_account_name: "baker"
+    client_dir: "/home/ubuntu/.tezos-client"
+    node_dir: "/home/ubuntu/.tezos-node"
+    log_dir: "/home/ubuntu/tezos-logs"  # '$HOME' or '~' does not work in shutdown task shell command
+    vm_prefix: "tezos"
+    genesis_host_name: "{{ vm_prefix }}_1"
+    group_name_all_hosts: baker
+
+  tasks:
+
+    # - name: reboot the hosts and thus kill all running tezos processes
+    #   reboot:
+    #   become: true
+    - name: Check existance of node_pid.txt
+      ansible.builtin.stat:
+        path: "{{ log_dir }}/node_pid.txt"
+      register: status_node_pid
+
+    - name: Shutdown tezos-node
+      ansible.builtin.shell:
+        cmd: kill -15 "$(cat {{ log_dir | quote }}/node_pid.txt)"  # '<' redirection doesn't work
+      register: kill_status
+      changed_when: kill_status.stdout_lines != ""
+      ignore_errors: true
+      when:
+        - status_node_pid.stat.isreg is defined
+        - status_node_pid.stat.isreg
+        - status_node_pid.stat.blocks > 0
+
+    - name: Delete directories
+      block:
+        - name: Delete tezos-client, tezos-node, tezos-logs, tezos-accounts directory
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "{{ client_dir }}"
+            - "{{ node_dir }}"
+            - "{{ log_dir }}"
+            - "{{ accounts_dir }}"
