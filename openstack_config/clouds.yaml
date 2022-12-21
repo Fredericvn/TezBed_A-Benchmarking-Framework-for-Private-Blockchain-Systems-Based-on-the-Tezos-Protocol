@@ -9,11 +9,11 @@
 clouds:
   openstack:
     auth:
-      auth_url: https://idm02.bw-cloud.org:5000/v3
-      username: "ujeuo@student.kit.edu"
-      project_id: b1e5d3881b68458d9127e1141b91e0ba
-      project_name: "karlsruhe_COOLedger"
-      user_domain_name: "Default"
-    region_name: "Karlsruhe"
-    interface: "public"
+      auth_url: 
+      username: 
+      project_id: 
+      project_name:
+      user_domain_name: 
+    region_name: 
+    interface: 
     identity_api_version: 3
